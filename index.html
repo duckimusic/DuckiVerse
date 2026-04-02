@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog GMT+7</title>
+    <title>SpendLog Pro</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; }
+        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
         .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
@@ -17,10 +17,15 @@
         .ana-btn.active { background: #30363d; color: white; }
         .stat-focus { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; text-align: center; margin-bottom: 15px; }
         .stat-focus h1 { margin: 10px 0 0; font-size: 32px; color: var(--gold); }
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; }
-        .r-row { display: flex; justify-content: space-between; margin: 4px 0; }
+        
+        /* Receipt & Item Delete */
+        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
+        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
+        .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 16px; margin-left: 10px; border: 1px solid transparent; border-radius: 4px; }
+        .del-item:hover { background: #fee2e2; border-color: #fca5a5; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
+        
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; }
@@ -37,8 +42,8 @@
     <div id="view-logs" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Items (Milk + Gas)">
-            <input type="text" id="cost-input" placeholder="Prices (20k + 50k)">
+            <input type="text" id="item-input" placeholder="Tên (Ví dụ: Trà sữa + Bánh)">
+            <input type="text" id="cost-input" placeholder="Giá (Ví dụ: 30k + 20k)">
             <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="list" style="margin-top:20px"></div>
@@ -69,39 +74,21 @@
         let spendings = [];
         let currentAna = 'daily';
 
-        // --- TIMEZONE SENSITIVE LOGIC (GMT+7) ---
-        function getVnTime() {
-            // Force a date object to Vietnam time regardless of device setting
-            return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-        }
-
+        function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
         function getMonday(dateObj) {
-            let d = new Date(dateObj);
-            d.setHours(0,0,0,0);
-            let day = d.getDay(); 
-            let diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+            let d = new Date(dateObj); d.setHours(0,0,0,0);
+            let day = d.getDay(); let diff = d.getDate() - day + (day === 0 ? -6 : 1); 
             return new Date(d.setDate(diff)).getTime();
         }
-
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
-        function showView(v){
-            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
-            document.getElementById(`view-${v}`).classList.add('active');
-            document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
+        async function load(){
+            const res = await fetch(API);
+            spendings = await res.json() || [];
             render();
         }
 
-        function setAna(t){ currentAna = t; document.querySelectorAll('.ana-btn').forEach(b => b.classList.remove('active')); document.querySelector(`[onclick="setAna('${t}')"]`).classList.add('active'); render(); }
-
-        async function load(){
-            try {
-                const res = await fetch(API);
-                spendings = await res.json() || [];
-                render();
-            } catch(e) { console.error("Load failed", e); }
-        }
+        async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
 
         function render(){
             const vnNow = getVnTime();
@@ -110,44 +97,67 @@
             const currentYear = vnNow.getFullYear();
 
             let grandTotal = 0, weeklySum = 0, monthlySum = 0;
-
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            document.getElementById('list').innerHTML = sorted.map(s => {
-                // Parse the saved date string as a local date
+            document.getElementById('list').innerHTML = sorted.map((s, entryIdx) => {
                 const parts = s.date.split('-');
                 const entryDate = new Date(parts[0], parts[1]-1, parts[2]);
                 const entryMonday = getMonday(entryDate);
                 
                 grandTotal += s.cost;
-                
-                // Compare Monday-anchors to check if in current week
                 if(entryMonday === currentMonday) weeklySum += s.cost;
-                
-                // Check if in current month/year
                 if(entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) monthlySum += s.cost;
 
                 return `
                 <div class="receipt">
-                    <div class="r-head"><strong>${parts[2]}/${parts[1]}/${parts[0]}</strong></div>
-                    ${s.details.map(i => `<div class="r-row"><span>${i.name}</span><span>${format(i.price)}</span></div>`).join('')}
+                    <div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>
+                    ${s.details.map((i, itemIdx) => `
+                        <div class="r-row">
+                            <div style="flex:1"><span>${i.name}</span></div>
+                            <div style="width:80px; text-align:right"><span>${format(i.price)}₫</span></div>
+                            <div class="del-item" onclick="deleteLine('${s.date}', ${itemIdx})">×</div>
+                        </div>
+                    `).join('')}
                     <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
                 </div>`;
             }).join('');
 
+            updateStats(weeklySum, monthlySum, grandTotal);
+        }
+
+        function updateStats(weekly, monthly, grand) {
             if(currentAna === 'daily') {
                 document.getElementById('ana-label').innerText = "Weekly Daily Avg";
-                document.getElementById('ana-value').innerText = format(weeklySum / 7) + "₫";
+                document.getElementById('ana-value').innerText = format(weekly / 7) + "₫";
             } else if(currentAna === 'weekly') {
                 document.getElementById('ana-label').innerText = "Spent This Week (M-S)";
-                document.getElementById('ana-value').innerText = format(weeklySum) + "₫";
+                document.getElementById('ana-value').innerText = format(weekly) + "₫";
             } else {
                 document.getElementById('ana-label').innerText = "Spent This Month";
-                document.getElementById('ana-value').innerText = format(monthlySum) + "₫";
+                document.getElementById('ana-value').innerText = format(monthly) + "₫";
+            }
+            document.getElementById('stat-grand').innerText = format(grand) + "₫";
+            document.getElementById('stat-footer-total').innerText = format(grand);
+        }
+
+        // --- NEW DELETE LOGIC ---
+        async function deleteLine(date, itemIdx) {
+            const entry = spendings.find(s => s.date === date);
+            if (!entry) return;
+
+            // Remove the specific item from the details array
+            entry.details.splice(itemIdx, 1);
+
+            // Recalculate the entry's total cost
+            entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
+
+            // If the entry has no items left, remove the whole date
+            if (entry.details.length === 0) {
+                spendings = spendings.filter(s => s.date !== date);
             }
 
-            document.getElementById('stat-grand').innerText = format(grandTotal) + "₫";
-            document.getElementById('stat-footer-total').innerText = format(grandTotal);
+            await sync();
+            render();
         }
 
         async function saveEntry(){
@@ -162,8 +172,7 @@
             if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
             names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:prices[i]}));
             entry.cost = entry.details.reduce((a,b) => a + b.price, 0);
-            await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
-            render();
+            await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
 
@@ -176,18 +185,15 @@
             lines.forEach(line => {
                 const dm = line.match(/^(T\d|CN)\s*:/i);
                 if(!dm) return;
-                const cd = dm[1].toUpperCase();
                 const m = header.match(/(\d+)\/(\d+)/);
                 const yr = header.match(/\b(20\d{2})\b/) ? header.match(/\b(20\d{2})\b/)[1] : 2026;
-                
-                // Create local date
                 let d = new Date(yr, m[2]-1, m[1]);
-                d.setDate(d.getDate() + dayMap[cd]);
+                d.setDate(d.getDate() + dayMap[dm[1].toUpperCase()]);
                 const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 
                 const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
                 let match;
-                while((match = regex.exec(line)) !== null){
+                while((match = regex.exec(line)){
                     const p = parseFloat(match[1].replace(/k/g, '000'));
                     const items = match[2].split(/[+/]/).map(n => n.trim());
                     let entry = spendings.find(s => s.date === ds);
@@ -196,14 +202,20 @@
                     entry.cost = entry.details.reduce((a,b) => a+b.price, 0);
                 }
             });
-            await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
-            render(); showView('stats');
+            await sync(); render(); showView('stats');
         }
 
-        // Initialize date to VN Today
+        function showView(v){
+            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
+            document.getElementById(`view-${v}`).classList.add('active');
+            document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
+            render();
+        }
+        function setAna(t){ currentAna = t; document.querySelectorAll('.ana-btn').forEach(b => b.classList.remove('active')); document.querySelector(`[onclick="setAna('${t}')"]`).classList.add('active'); render(); }
+
         const vnToday = getVnTime();
         document.getElementById('date-input').value = `${vnToday.getFullYear()}-${String(vnToday.getMonth()+1).padStart(2,'0')}-${String(vnToday.getDate()).padStart(2,'0')}`;
-        
         load();
     </script>
 </body>
