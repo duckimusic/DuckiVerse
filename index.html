@@ -42,7 +42,7 @@
         <div style="clear:both;"></div>
 
         <div id="bulk-section" class="input-group" style="display:none;">
-            <textarea id="bulk-input" rows="5" placeholder="(23/3 - 29/3 / 2025)&#10;T2 : 31k (cà phê)"></textarea>
+            <textarea id="bulk-input" rows="5" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)"></textarea>
             <button class="btn-s" onclick="importData()">CONFIRM IMPORT</button>
         </div>
 
@@ -56,16 +56,15 @@
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-        
-        // Corrected Offsets: T2 is Monday (0 days from the start of the week range)
         const dayMap = { 'T2': 0, 'T3': 1, 'T4': 2, 'T5': 3, 'T6': 4, 'T7': 5, 'CN': 6 };
 
         document.getElementById('date-input').valueAsDate = new Date();
 
         function getDayVn(dateString) {
             const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-            const d = new Date(dateString);
-            return days[d.getUTCDay()]; // Use UTC to stay consistent with storage
+            const [y, m, d] = dateString.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            return days[dt.getDay()];
         }
 
         function formatMoney(num) {
@@ -103,19 +102,22 @@
         function calculateActualDate(rangeStr, dayCode) {
             try {
                 const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
-                const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
+                const year = yearMatch ? parseInt(yearMatch[1]) : 2026; // Default to 2026
                 const match = rangeStr.match(/(\d+)\/(\d+)/);
                 
                 if (!match) return document.getElementById('date-input').value;
 
-                // Create the start of the week (T2)
-                // Using UTC 00:00 to avoid any local timezone shifts
-                let d = new Date(Date.UTC(year, parseInt(match[2]) - 1, parseInt(match[1])));
+                // Create the start date (T2)
+                let d = new Date(year, parseInt(match[2]) - 1, parseInt(match[1]));
                 
                 const offset = dayMap[dayCode.toUpperCase()];
-                if (offset !== undefined) d.setUTCDate(d.getUTCDate() + offset);
+                if (offset !== undefined) d.setDate(d.getDate() + offset);
                 
-                return d.toISOString().split('T')[0];
+                // Format manually to YYYY-MM-DD to avoid UTC time shift issues
+                const yyyy = d.getFullYear();
+                const mm = String(d.getMonth() + 1).padStart(2, '0');
+                const dd = String(d.getDate()).padStart(2, '0');
+                return `${yyyy}-${mm}-${dd}`;
             } catch (e) {
                 return document.getElementById('date-input').value;
             }
@@ -169,11 +171,12 @@
             
             container.innerHTML = sorted.map(s => {
                 grand += s.cost;
+                const displayDate = s.date.split('-').reverse().join('/');
                 return `
                 <div class="entry">
                     <div class="receipt-header">
                         <h3>SPEND LOG</h3>
-                        <small>${getDayVn(s.date)} (${s.date.split('-').reverse().join('/')})</small>
+                        <small>${getDayVn(s.date)} (${displayDate})</small>
                     </div>
                     <div class="receipt-body">
                         ${s.details.map(d => `<div class="item-row"><span>${d.name}</span><span>${formatMoney(d.price)}</span></div>`).join('')}
