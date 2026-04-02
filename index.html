@@ -3,54 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>SpendLog 2.0</title>
+    <title>SpendLog Dashboard</title>
     <style>
-        :root { --bg: #1a1a1a; --paper: #fdfdfd; --ink: #222; --accent: #58a6ff; --danger: #f85149; --warning: #d4a017; }
-        body { background: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; padding: 20px; margin: 0; display: flex; justify-content: center; }
-        .app { max-width: 400px; width: 100%; padding-bottom: 120px; }
-        .input-group { background: #222; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #444; color: #0f0; border-radius: 4px; box-sizing: border-box; font-size: 16px; font-family: monospace; }
-        button { width: 100%; padding: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: sans-serif; }
-        .btn-main { background: var(--accent); color: white; margin-top: 10px; }
-        .btn-import-toggle { background: transparent; color: #888; border: 1px solid #444; margin-bottom: 15px; font-size: 12px; padding: 5px; width: auto; float: right; }
-        .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5); border-bottom: 4px dashed var(--paper); }
+        :root { --bg: #121212; --card: #1e1e1e; --paper: #fdfdfd; --ink: #222; --accent: #58a6ff; --green: #3fb950; --gold: #d4a017; }
+        body { background: var(--bg); color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; margin: 0; padding-bottom: 100px; }
+        
+        /* Dashboard Header */
+        .header { padding: 25px 20px; background: linear-gradient(180deg, #222 0%, var(--bg) 100%); text-align: center; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 20px; }
+        .stat-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #333; text-align: left; }
+        .stat-card small { color: #888; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .stat-card div { font-size: 18px; font-weight: bold; color: var(--accent); margin-top: 5px; }
+
+        /* Tabs */
+        .tabs { display: flex; justify-content: center; gap: 20px; border-bottom: 1px solid #333; margin-bottom: 20px; }
+        .tab { padding: 10px 20px; color: #888; cursor: pointer; border-bottom: 2px solid transparent; transition: 0.3s; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: bold; }
+
+        .view { display: none; padding: 0 20px; max-width: 500px; margin: 0 auto; }
+        .view.active { display: block; }
+
+        /* Input Area */
+        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #444; color: #0f0; border-radius: 8px; box-sizing: border-box; font-size: 16px; font-family: monospace; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-main { background: var(--accent); color: white; }
+        
+        /* Receipt Style for Logs */
+        .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; border-radius: 4px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); position: relative; }
         .receipt-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
-        .item-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin: 5px 0; }
-        .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; }
-        .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
-        .btn-s { background: #eee; color: #555; font-size: 11px; padding: 6px; }
-        .btn-del { background: transparent; border: 1px solid #ffcccb; color: var(--danger); font-size: 11px; }
-        .summary-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--warning); color: #000; padding: 15px; text-align: center; font-weight: bold; z-index: 100; cursor: pointer; }
+        .item-row { display: flex; justify-content: space-between; font-size: 14px; font-family: monospace; margin: 4px 0; }
+        .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; }
+        
+        .actions { display: flex; gap: 10px; margin-top: 15px; }
+        .btn-s { background: #eee; color: #555; font-size: 10px; padding: 5px; flex: 1; }
+
+        .summary-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--gold); color: #000; padding: 18px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; }
     </style>
 </head>
 <body>
-    <div class="app">
-        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-            <h2 style="font-family: sans-serif; margin: 0;">SpendLog</h2>
-            <small id="status" style="color: #666;">Ready</small>
-        </div>
 
+    <div class="header">
+        <h2 style="margin:0; letter-spacing: 2px;">SPENDLOG 2026</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <small>This Month</small>
+                <div id="stat-month">0</div>
+            </div>
+            <div class="stat-card">
+                <small>Year Total</small>
+                <div id="stat-year" style="color:var(--green)">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('daily')">LOGS</div>
+        <div class="tab" onclick="switchTab('import')">IMPORT</div>
+        <div class="tab" onclick="switchTab('settings')">UTILITY</div>
+    </div>
+
+    <div id="view-daily" class="view active">
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (VD: Thuốc + Nước)">
-            <input type="text" id="cost-input" placeholder="Giá (VD: 26k + 15k)">
+            <input type="text" id="item-input" placeholder="Name (Coffee + Bread)">
+            <input type="text" id="cost-input" placeholder="Price (20k + 15k)">
             <button class="btn-main" onclick="saveEntry()">PRINT RECEIPT</button>
         </div>
-
-        <button class="btn-import-toggle" onclick="toggleBulk()">+ BULK IMPORT</button>
-        <div style="clear:both;"></div>
-
-        <div id="bulk-section" class="input-group" style="display:none;">
-            <textarea id="bulk-input" rows="5" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)"></textarea>
-            <button class="btn-s" onclick="importData()">CONFIRM IMPORT</button>
-        </div>
-
         <div id="list">Loading...</div>
     </div>
 
-    <div class="summary-bar" onclick="copyWeeklyReport()">
-        TOTAL: <span id="grand-total">0</span>vn₫
+    <div id="view-import" class="view">
+        <div class="input-group">
+            <h3 style="margin-top:0">Bulk Upload</h3>
+            <p style="font-size:12px; color:#888;">Paste your weekly notes here:</p>
+            <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 30k (coffee)&#10;T3 : 90k (gas + fix)"></textarea>
+            <button class="btn-main" style="background:var(--green)" onclick="importData()">CONFIRM BULK IMPORT</button>
+        </div>
+    </div>
+
+    <div id="view-settings" class="view">
+        <div class="input-group">
+            <h3>Reports</h3>
+            <button class="btn-s" style="padding:15px; margin-bottom:10px" onclick="copyWeeklyReport()">COPY ALL DATA (BACKUP)</button>
+            <button class="btn-s" style="padding:15px; color:var(--danger)" onclick="clearAllData()">RESET ALL (START OVER)</button>
+        </div>
+        <p style="text-align:center; color:#555; font-size:10px;">Cloudflare KV Connection Active</p>
+    </div>
+
+    <div class="summary-bar">
+        DAILY AVG: <span id="stat-avg">0</span>vn₫
     </div>
 
     <script>
@@ -60,11 +102,11 @@
 
         document.getElementById('date-input').valueAsDate = new Date();
 
-        function getDayVn(dateString) {
-            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-            const [y, m, d] = dateString.split('-').map(Number);
-            const dt = new Date(y, m - 1, d);
-            return days[dt.getDay()];
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelector(`.tab[onclick="switchTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(`view-${tabId}`).classList.add('active');
         }
 
         function formatMoney(num) {
@@ -84,43 +126,23 @@
                 const data = await res.json();
                 spendings = Array.isArray(data) ? data : [];
                 render();
-            } catch (e) {
-                document.getElementById('list').innerText = "CONNECTION ERROR";
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function sync() {
-            document.getElementById('status').innerText = "Syncing...";
-            try {
-                await fetch(API, { method: "POST", body: JSON.stringify(spendings) });
-                document.getElementById('status').innerText = "Synced";
-            } catch (e) {
-                document.getElementById('status').innerText = "Sync Failed";
-            }
+            try { await fetch(API, { method: "POST", body: JSON.stringify(spendings) }); }
+            catch (e) { alert("Sync Error!"); }
         }
 
         function calculateActualDate(rangeStr, dayCode) {
-            try {
-                const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
-                const year = yearMatch ? parseInt(yearMatch[1]) : 2026; // Default to 2026
-                const match = rangeStr.match(/(\d+)\/(\d+)/);
-                
-                if (!match) return document.getElementById('date-input').value;
-
-                // Create the start date (T2)
-                let d = new Date(year, parseInt(match[2]) - 1, parseInt(match[1]));
-                
-                const offset = dayMap[dayCode.toUpperCase()];
-                if (offset !== undefined) d.setDate(d.getDate() + offset);
-                
-                // Format manually to YYYY-MM-DD to avoid UTC time shift issues
-                const yyyy = d.getFullYear();
-                const mm = String(d.getMonth() + 1).padStart(2, '0');
-                const dd = String(d.getDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
-            } catch (e) {
-                return document.getElementById('date-input').value;
-            }
+            const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
+            const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
+            const match = rangeStr.match(/(\d+)\/(\d+)/);
+            if (!match) return document.getElementById('date-input').value;
+            let d = new Date(year, parseInt(match[2]) - 1, parseInt(match[1]));
+            const offset = dayMap[dayCode.toUpperCase()];
+            if (offset !== undefined) d.setDate(d.getDate() + offset);
+            return d.toISOString().split('T')[0];
         }
 
         function addRecord(date, names, prices) {
@@ -142,14 +164,11 @@
             let currentDay = null;
 
             lines.forEach(line => {
-                if (!line.trim() || line === header) return;
                 const dayMatch = line.match(/^(T\d|CN)\s*:/i);
                 if (dayMatch) currentDay = dayMatch[1].toUpperCase();
                 if (!currentDay) return;
-
                 const targetDate = calculateActualDate(header, currentDay);
                 const content = line.replace(/^(T\d|CN)\s*:\s*/i, '');
-                
                 const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
                 let match;
                 while ((match = regex.exec(content)) !== null) {
@@ -158,70 +177,70 @@
                     addRecord(targetDate, items, Array(items.length).fill(price / items.length));
                 }
             });
-            await sync(); render(); toggleBulk();
-            document.getElementById('bulk-input').value = "";
+            await sync(); render(); switchTab('daily');
         }
 
         function render() {
-            const container = document.getElementById('list');
-            if (!spendings.length) { container.innerHTML = "NO RECORDS"; return; }
-            
+            const now = new Date();
+            const curMonth = now.getMonth();
+            const curYear = now.getFullYear();
+
+            let totalMonth = 0;
+            let totalYear = 0;
+            let dayCount = spendings.length;
+
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
-            let grand = 0;
             
-            container.innerHTML = sorted.map(s => {
-                grand += s.cost;
-                const displayDate = s.date.split('-').reverse().join('/');
+            document.getElementById('list').innerHTML = sorted.map(s => {
+                const d = new Date(s.date);
+                if (d.getFullYear() === curYear) {
+                    totalYear += s.cost;
+                    if (d.getMonth() === curMonth) totalMonth += s.cost;
+                }
+
                 return `
                 <div class="entry">
                     <div class="receipt-header">
-                        <h3>SPEND LOG</h3>
-                        <small>${getDayVn(s.date)} (${displayDate})</small>
+                        <strong>${s.date.split('-').reverse().join('/')}</strong>
                     </div>
                     <div class="receipt-body">
-                        ${s.details.map(d => `<div class="item-row"><span>${d.name}</span><span>${formatMoney(d.price)}</span></div>`).join('')}
+                        ${s.details.map(i => `<div class="item-row"><span>${i.name}</span><span>${formatMoney(i.price)}</span></div>`).join('')}
                     </div>
                     <div class="total-row"><span>TOTAL</span><span>${formatMoney(s.cost)}vnd</span></div>
                     <div class="actions">
-                        <button class="btn-s" onclick="copyItem('${s.date}')">COPY</button>
-                        <button class="btn-s" onclick="editItem('${s.date}')">ADD</button>
-                        <button class="btn-del" onclick="deleteItem('${s.date}')">VOID</button>
+                        <button class="btn-s" onclick="deleteItem('${s.date}')">VOID</button>
                     </div>
                 </div>`;
             }).join('');
-            document.getElementById('grand-total').innerText = formatMoney(grand);
+
+            document.getElementById('stat-month').innerText = formatMoney(totalMonth);
+            document.getElementById('stat-year').innerText = formatMoney(totalYear);
+            document.getElementById('stat-avg').innerText = formatMoney(dayCount ? totalYear / dayCount : 0);
         }
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
             const names = document.getElementById('item-input').value.split('+');
-            const priceVal = document.getElementById('cost-input').value;
-            const prices = priceVal.split('+').map(p => parsePrice(p.trim()));
+            const prices = document.getElementById('cost-input').value.split('+').map(p => parsePrice(p.trim()));
             addRecord(date, names, prices);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
 
-        function copyItem(date) {
-            const s = spendings.find(x => x.date === date);
-            const items = s.details.map(d => `${d.name}: ${formatMoney(d.price)}`).join('\n');
-            navigator.clipboard.writeText(`LOG ${s.date}\n${items}\nTotal: ${formatMoney(s.cost)}`);
-            alert("Copied!");
+        async function deleteItem(date) {
+            if(confirm("Delete this entry?")) {
+                spendings = spendings.filter(s => s.date !== date);
+                await sync(); render();
+            }
         }
 
-        function copyWeeklyReport() {
-            let r = "=== WEEKLY REPORT ===\n\n";
-            [...spendings].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
-                const items = s.details.map(d => `  - ${d.name}: ${formatMoney(d.price)}`).join('\n');
-                r += `${getDayVn(s.date)} (${s.date})\n${items}\nDay Total: ${formatMoney(s.cost)}vnd\n\n`;
-            });
-            navigator.clipboard.writeText(r); alert("Report Copied!");
+        function clearAllData() {
+            if(confirm("DANGER: This will delete ALL history. Continue?")) {
+                spendings = [];
+                sync().then(() => render());
+            }
         }
 
-        function editItem(date) { document.getElementById('date-input').value = date; document.getElementById('item-input').focus(); }
-        async function deleteItem(date) { if(confirm("VOID?")) { spendings = spendings.filter(s => s.date !== date); await sync(); render(); } }
-        function toggleBulk() { const b = document.getElementById('bulk-section'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
-        
         loadData();
     </script>
 </body>
