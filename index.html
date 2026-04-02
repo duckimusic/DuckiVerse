@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.1 - Precise Edition</title>
+    <title>SpendLog 11.2 - Strict Integer Edition</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
@@ -17,23 +17,23 @@
         .view.active { display: block; }
         
         /* Weekly Summary Cards */
-        .week-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .week-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--gold); }
         .week-label { font-size: 13px; font-weight: bold; color: #8b949e; }
         .week-amount { font-size: 18px; font-weight: 900; color: var(--gold); }
 
-        /* Daily Receipt Style */
+        /* Daily Receipt Style (Individual Days) */
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
+        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
-        .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
+        .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 15px; }
         
         /* Forms & Buttons */
-        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 50px; font-size: 11px; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 50px; font-size: 11px; width: 100%; padding: 10px; border-radius: 8px; cursor: pointer; }
         
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -41,27 +41,28 @@
     <div class="nav-tabs">
         <div class="nav-tab active" onclick="showView('daily')">DAILY LOGS</div>
         <div class="nav-tab" onclick="showView('weekly')">WEEKLY TOTALS</div>
-        <div class="nav-tab" onclick="showView('tools')">BULK/TOOLS</div>
+        <div class="nav-tab" onclick="showView('tools')">BULK / WIPE</div>
     </div>
 
     <div id="view-daily" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Xăng + Ăn sáng)">
-            <input type="text" id="cost-input" placeholder="Giá (50k + 30k)">
+            <input type="text" id="item-input" placeholder="Items (A + B)">
+            <input type="text" id="cost-input" placeholder="Prices (10k + 20k)">
             <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="daily-list" style="margin-top:20px"></div>
     </div>
 
     <div id="view-weekly" class="view">
+        <h3 style="color:#8b949e; font-size:12px; text-transform:uppercase; margin-bottom:15px">Weekly Summary (Mon-Sun)</h3>
         <div id="weekly-breakdown"></div>
     </div>
 
     <div id="view-tools" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="Paste (DD/MM - DD/MM) format here..."></textarea>
+        <textarea id="bulk-input" rows="10" placeholder="Paste report here... (DD/MM - DD/MM)"></textarea>
         <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <button class="btn-save btn-danger" onclick="clearAllData()">WIPE DATABASE</button>
+        <button class="btn-danger" onclick="clearAllData()">WIPE DATABASE</button>
     </div>
 
     <div class="total-footer">GRAND TOTAL: <span id="grand-total-val">0</span>₫</div>
@@ -70,8 +71,15 @@
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
 
+        // GATEKEEPER: Forces base-10 integers only. No decimals allowed.
+        function toSafeInt(val) {
+            if (!val) return 0;
+            let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
+            return Math.floor(parseInt(clean, 10) || 0);
+        }
+
         function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
-        
+
         function getMondayID(dateStr) {
             const [y, m, d] = dateStr.split('-').map(Number);
             let date = new Date(y, m - 1, d);
@@ -81,14 +89,26 @@
             return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
         }
 
-        // Precise integer formatting
-        function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
+        function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.floor(n)); }
 
-        async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
+        async function sync(){ 
+            // Final integer-only scrub before saving to Cloudflare
+            spendings.forEach(s => {
+                s.cost = Math.floor(s.cost);
+                s.details.forEach(d => d.price = Math.floor(d.price));
+            });
+            await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); 
+        }
 
         async function load(){
             const res = await fetch(API);
-            spendings = await res.json() || [];
+            const data = await res.json();
+            // Deep clean incoming data to strip any previous .002 errors
+            spendings = (data || []).map(s => ({
+                ...s,
+                cost: Math.floor(s.cost),
+                details: s.details.map(d => ({ ...d, price: Math.floor(d.price) }))
+            }));
             render();
         }
 
@@ -98,9 +118,9 @@
 
             const sortedDaily = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            // Render Daily Receipts
+            // Render Daily Logs as individual receipts
             document.getElementById('daily-list').innerHTML = sortedDaily.map(s => {
-                const dayTotal = Math.round(s.cost);
+                const dayTotal = Math.floor(s.cost);
                 grandTotal += dayTotal;
                 const mID = getMondayID(s.date);
                 weeklyBuckets[mID] = (weeklyBuckets[mID] || 0) + dayTotal;
@@ -120,7 +140,7 @@
                 </div>`;
             }).join('');
 
-            // Render Weekly Tab
+            // Render Weekly Tab totals
             const sortedWeekKeys = Object.keys(weeklyBuckets).sort((a,b) => new Date(b) - new Date(a));
             document.getElementById('weekly-breakdown').innerHTML = sortedWeekKeys.map(mStr => {
                 const [y, m, d] = mStr.split('-').map(Number);
@@ -138,6 +158,7 @@
 
         async function importData(){
             const raw = document.getElementById('bulk-input').value;
+            // Split by blocks like (5/1 - 11/1)
             const segments = raw.split(/\((?=\d+\/\d+)/); 
 
             segments.forEach(segment => {
@@ -161,19 +182,16 @@
                     const nums = line.match(/\d+[kK]?/g);
                     if(!nums || line.includes('X')) return;
                     
-                    const dailySum = Math.round(nums.reduce((acc, n) => {
-                        let val = n.toLowerCase().replace('k', '000');
-                        return acc + parseFloat(val);
-                    }, 0));
-
+                    const dailySum = nums.reduce((acc, n) => acc + toSafeInt(n), 0);
                     const nameMatch = line.match(/\(([^)]+)\)/);
                     const itemName = nameMatch ? nameMatch[1].toUpperCase() : "EXPENSE";
 
+                    // Ensure individual daily receipt
                     spendings = spendings.filter(s => s.date !== ds);
                     spendings.push({
                         date: ds,
-                        cost: dailySum,
-                        details: [{ name: itemName, price: dailySum }]
+                        cost: Math.floor(dailySum),
+                        details: [{ name: itemName, price: Math.floor(dailySum) }]
                     });
                 });
             });
@@ -182,34 +200,38 @@
             document.getElementById('bulk-input').value = "";
         }
 
+        async function saveEntry(){
+            const d = document.getElementById('date-input').value;
+            if(!d) return;
+            const names = document.getElementById('item-input').value.split('+');
+            const costsRaw = document.getElementById('cost-input').value.split('+');
+            
+            let entry = spendings.find(s => s.date === d);
+            if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
+            
+            names.forEach((n, i) => {
+                const cleanPrice = toSafeInt(costsRaw[i]);
+                entry.details.push({name: n.toUpperCase().trim(), price: cleanPrice});
+            });
+            
+            entry.cost = Math.floor(entry.details.reduce((a,b) => a + b.price, 0));
+            await sync(); render();
+            document.getElementById('item-input').value = ""; 
+            document.getElementById('cost-input').value = "";
+        }
+
         async function deleteLine(date, idx) {
             const entry = spendings.find(s => s.date === date);
             if (entry) {
                 entry.details.splice(idx, 1);
-                entry.cost = Math.round(entry.details.reduce((sum, i) => sum + i.price, 0));
+                entry.cost = Math.floor(entry.details.reduce((sum, i) => sum + i.price, 0));
                 if (entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
                 await sync(); render();
             }
         }
 
-        async function saveEntry(){
-            const d = document.getElementById('date-input').value;
-            if(!d) return;
-            const names = document.getElementById('item-input').value.split('+');
-            const prices = document.getElementById('cost-input').value.split('+').map(p => {
-                let v = p.toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
-                return Math.round(parseFloat(v)) || 0;
-            });
-            let entry = spendings.find(s => s.date === d);
-            if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:prices[i] || 0}));
-            entry.cost = Math.round(entry.details.reduce((a,b) => a + b.price, 0));
-            await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
-        }
-
         async function clearAllData() {
-            if (confirm("Wipe everything?")) {
+            if (confirm("THIS WILL WIPE EVERYTHING. Are you sure?")) {
                 spendings = []; await sync(); render();
             }
         }
@@ -221,6 +243,10 @@
             document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
             render();
         }
+
+        // Set default date to today (VN time)
+        const vnToday = getVnTime();
+        document.getElementById('date-input').value = `${vnToday.getFullYear()}-${String(vnToday.getMonth()+1).padStart(2,'0')}-${String(vnToday.getDate()).padStart(2,'0')}`;
 
         load();
     </script>
