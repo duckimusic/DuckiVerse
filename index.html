@@ -12,20 +12,16 @@
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
-        
         .ana-toggle { display: flex; background: #000; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
         .ana-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #8b949e; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 6px; }
         .ana-btn.active { background: #30363d; color: white; }
-        
         .stat-focus { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; text-align: center; margin-bottom: 15px; }
         .stat-focus h1 { margin: 10px 0 0; font-size: 32px; color: var(--gold); }
-        
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
-        
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save:disabled { opacity: 0.5; cursor: wait; }
@@ -43,8 +39,8 @@
     <div id="view-logs" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Ví dụ: Xăng + Ăn sáng)">
-            <input type="text" id="cost-input" placeholder="Giá (Ví dụ: 50k + 30k)">
+            <input type="text" id="item-input" placeholder="Tên (Xăng + Ăn sáng)">
+            <input type="text" id="cost-input" placeholder="Giá (50k + 30k)">
             <button id="save-btn" class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="list" style="margin-top:20px"></div>
@@ -76,16 +72,11 @@
         let currentAna = 'daily';
 
         function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
-        
         function getMonday(dateObj) {
-            let d = new Date(dateObj);
-            d.setHours(0,0,0,0);
-            let day = d.getDay();
-            // In JS, Sunday is 0. We need Monday (1) to be start of week.
-            let diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            let d = new Date(dateObj); d.setHours(0,0,0,0);
+            let day = d.getDay(); let diff = d.getDate() - day + (day === 0 ? -6 : 1);
             return new Date(d.setDate(diff)).getTime();
         }
-
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
         async function sync(){
@@ -113,23 +104,10 @@
                 const parts = s.date.split('-');
                 const entryDate = new Date(parts[0], parts[1]-1, parts[2]);
                 const entryMonday = getMonday(entryDate);
-                
                 grandTotal += s.cost;
                 if(entryMonday === currentMonday) weeklySum += s.cost;
                 if(entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) monthlySum += s.cost;
-
-                return `
-                <div class="receipt">
-                    <div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>
-                    ${s.details.map((i, idx) => `
-                        <div class="r-row">
-                            <div style="flex:1"><span>${i.name}</span></div>
-                            <div style="width:80px; text-align:right"><span>${format(i.price)}₫</span></div>
-                            <div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div>
-                        </div>
-                    `).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
-                </div>`;
+                return `<div class="receipt"><div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>${s.details.map((i, idx) => `<div class="r-row"><div style="flex:1"><span>${i.name}</span></div><div style="width:80px; text-align:right"><span>${format(i.price)}₫</span></div><div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div></div>`;
             }).join('');
 
             if(currentAna === 'daily') {
@@ -177,27 +155,37 @@
             const header = lines.find(l => l.includes('/')) || "";
             const dayMap = { 'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6 };
             
-            lines.forEach(line => {
-                // SKIP IF LINE STARTS WITH "=>" (Total indicator)
-                if(line.trim().startsWith('=>')) return;
+            const mMatch = header.match(/(\d+)\/(\d+)/);
+            if(!mMatch) return;
+            
+            // Step 1: Identify all 7 dates in this specific week block
+            const yr = 2026;
+            let weekDates = [];
+            for(let i=0; i<7; i++){
+                let d = new Date(yr, mMatch[2]-1, mMatch[1]);
+                d.setDate(d.getDate() + i);
+                weekDates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+            }
 
+            // Step 2: WIPE these 7 dates from current database to prevent doubling
+            spendings = spendings.filter(s => !weekDates.includes(s.date));
+
+            // Step 3: Parse and add the new data
+            lines.forEach(line => {
+                if(line.trim().startsWith('=>')) return;
                 const dm = line.match(/^(T\d|CN)\s*:/i);
                 if(!dm) return;
-
-                const m = header.match(/(\d+)\/(\d+)/);
-                const yr = 2026; // Static for your records
                 
-                let d = new Date(yr, m[2]-1, m[1]);
-                d.setDate(d.getDate() + dayMap[dm[1].toUpperCase()]);
-                const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                const dayOffset = dayMap[dm[1].toUpperCase()];
+                const targetDate = weekDates[dayOffset];
 
                 const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
                 let match;
                 while((match = regex.exec(line)) !== null) {
                     const p = parseFloat(match[1].replace(/k/g, '000'));
                     const items = match[2].split(/[+/]/).map(n => n.trim());
-                    let entry = spendings.find(s => s.date === ds);
-                    if(!entry){ entry = {date:ds, cost:0, details:[]}; spendings.push(entry); }
+                    let entry = spendings.find(s => s.date === targetDate);
+                    if(!entry){ entry = {date:targetDate, cost:0, details:[]}; spendings.push(entry); }
                     items.forEach(it => entry.details.push({name:it.toUpperCase(), price: p/items.length}));
                     entry.cost = entry.details.reduce((a,b) => a+b.price, 0);
                 }
@@ -214,7 +202,6 @@
             render();
         }
         function setAna(t){ currentAna = t; document.querySelectorAll('.ana-btn').forEach(b => b.classList.remove('active')); document.querySelector(`[onclick="setAna('${t}')"]`).classList.add('active'); render(); }
-
         const vnToday = getVnTime();
         document.getElementById('date-input').value = `${vnToday.getFullYear()}-${String(vnToday.getMonth()+1).padStart(2,'0')}-${String(vnToday.getDate()).padStart(2,'0')}`;
         load();
