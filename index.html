@@ -1,177 +1,246 @@
-<script>
-    const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
-    let spendings = [];
-    document.getElementById('date-input').valueAsDate = new Date();
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>SpendLog 2.0</title>
+    <style>
+        :root { --bg: #1a1a1a; --paper: #fdfdfd; --ink: #222; --accent: #58a6ff; --danger: #f85149; --warning: #d4a017; }
+        body { background: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; padding: 20px; margin: 0; display: flex; justify-content: center; }
+        .app { max-width: 400px; width: 100%; padding-bottom: 120px; }
+        .input-group { background: #222; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #444; color: #0f0; border-radius: 4px; box-sizing: border-box; font-size: 16px; font-family: monospace; }
+        button { width: 100%; padding: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: sans-serif; }
+        .btn-main { background: var(--accent); color: white; margin-top: 10px; }
+        .btn-import-toggle { background: transparent; color: #888; border: 1px solid #444; margin-bottom: 15px; font-size: 12px; padding: 5px; width: auto; float: right; }
+        .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5); position: relative; border-bottom: 4px dashed var(--paper); }
+        .receipt-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
+        .receipt-header h3 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
+        .item-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin: 5px 0; }
+        .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
+        .btn-s { background: #eee; color: #555; font-size: 11px; padding: 6px; }
+        .btn-del { background: transparent; border: 1px solid #ffcccb; color: var(--danger); font-size: 11px; }
+        .summary-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--warning); color: #000; padding: 15px; text-align: center; font-weight: bold; box-shadow: 0 -4px 10px rgba(0,0,0,0.5); z-index: 100; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <h2 style="font-family: sans-serif; margin: 0;">SpendLog</h2>
+            <small id="status" style="color: #666;">Ready</small>
+        </div>
 
-    function getDayVn(dateString) {
-        const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-        const d = new Date(dateString);
-        return days[d.getDay()];
-    }
+        <div class="input-group">
+            <input type="date" id="date-input">
+            <input type="text" id="item-input" placeholder="Tên (VD: Thuốc + Nước)">
+            <input type="text" id="cost-input" placeholder="Giá (VD: 26k + 15k)">
+            <button class="btn-main" onclick="saveEntry()">PRINT RECEIPT</button>
+        </div>
 
-    // Helper to turn "31k" into 31000 or "15" into 15
-    function parseSmartPrice(str) {
-        let val = str.toLowerCase().replace(/vnd|vnđ| /g, '');
-        if (val.includes('k')) {
-            return parseFloat(val.replace('k', '')) * 1000;
-        }
-        return parseFloat(val) || 0;
-    }
+        <button class="btn-import-toggle" onclick="toggleBulk()">+ BULK IMPORT</button>
+        <div style="clear:both;"></div>
 
-    async function loadData() {
-        try {
-            const res = await fetch(API);
-            const data = await res.json();
-            spendings = Array.isArray(data) ? data : [];
-            render();
-        } catch (e) { document.getElementById('list').innerText = "CONNECTION ERROR"; }
-    }
+        <div id="bulk-section" class="input-group" style="display:none;">
+            <textarea id="bulk-input" rows="5" placeholder="T2 : 31k (cà phê)"></textarea>
+            <button class="btn-s" onclick="importData()">CONFIRM IMPORT</button>
+        </div>
 
-    async function saveEntry() {
-        const date = document.getElementById('date-input').value;
-        const itemInput = document.getElementById('item-input').value;
-        const costInput = document.getElementById('cost-input').value;
-        
-        if (!date || !costInput) return alert("Missing Info");
+        <div id="list">Loading receipts...</div>
+    </div>
 
-        // Use the smart parser for manual entry too
-        const itemNames = itemInput.split('+').map(s => s.trim());
-        const costParts = costInput.split('+').map(s => parseSmartPrice(s));
+    <div class="summary-bar" onclick="copyWeeklyReport()">
+        WEEKLY TOTAL: <span id="grand-total">0</span>vn₫
+        <div style="font-size: 10px; font-weight: normal; margin-top: 4px;">Tap to copy full report</div>
+    </div>
 
-        processAndAdd(date, itemNames, costParts);
-        
-        render();
-        await sync();
-        document.getElementById('cost-input').value = "";
-        document.getElementById('item-input').value = "";
-    }
+    <script>
+        const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
+        let spendings = [];
 
-    function processAndAdd(date, names, prices) {
-        const index = spendings.findIndex(s => s.date === date);
-        let currentDay;
+        // Set default date to today
+        document.getElementById('date-input').valueAsDate = new Date();
 
-        if (index > -1) {
-            currentDay = spendings[index];
-            if (!currentDay.details) currentDay.details = [{ name: currentDay.item, price: currentDay.cost }];
-        } else {
-            currentDay = { date, cost: 0, details: [] };
-            spendings.push(currentDay);
-        }
-
-        names.forEach((name, i) => {
-            const price = prices[i] !== undefined ? prices[i] : (prices[0] || 0);
-            currentDay.details.push({ name: name.toUpperCase(), price: price });
-        });
-
-        currentDay.cost = currentDay.details.reduce((sum, item) => sum + item.price, 0);
-    }
-
-    async function sync() {
-        document.getElementById('status').innerText = "Syncing...";
-        await fetch(API, { method: "POST", body: JSON.stringify(spendings) });
-        document.getElementById('status').innerText = "Synced";
-    }
-
-    function render() {
-        const container = document.getElementById('list');
-        if (spendings.length === 0) {
-            container.innerHTML = "<p style='text-align:center;'>NO RECORDS FOUND</p>";
-            document.getElementById('grand-total').innerText = "0";
-            return;
+        function getDayVn(dateString) {
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const d = new Date(dateString);
+            return days[d.getDay()];
         }
 
-        const sorted = spendings.sort((a,b) => new Date(b.date) - new Date(a.date));
-        let weeklySum = 0;
+        function formatMoney(num) {
+            return new Intl.NumberFormat('vi-VN').format(num);
+        }
 
-        container.innerHTML = sorted.map((s, i) => {
-            weeklySum += s.cost;
-            const dayVn = getDayVn(s.date);
-            const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
-            const itemsHtml = (s.details || []).map(item => `
-                <div class="item-row">
-                    <span>${item.name}</span>
-                    <span>${new Intl.NumberFormat('vi-VN').format(item.price)}</span>
-                </div>`).join('');
-
-            return `
-                <div class="entry">
-                    <div class="receipt-header">
-                        <h3>SPEND LOG</h3>
-                        <div style="font-size:10px;">-=-=-=-=-=-=-=-=-</div>
-                        <small>${dayVn} (${formattedDate})</small>
-                    </div>
-                    <div class="receipt-body">${itemsHtml}</div>
-                    <div class="total-row">
-                        <span>TOTAL</span>
-                        <span>${new Intl.NumberFormat('vi-VN').format(s.cost)}</span>
-                    </div>
-                    <div class="actions">
-                        <button class="btn-s" onclick="copyItem(${i})">COPY</button>
-                        <button class="btn-s" onclick="editItem(${i})">ADD</button>
-                        <button class="btn-del" onclick="deleteItem(${i})">VOID</button>
-                    </div>
-                </div>`;
-        }).join('');
-
-        document.getElementById('grand-total').innerText = new Intl.NumberFormat('vi-VN').format(weeklySum);
-    }
-
-    // UPDATED BULK IMPORT FOR YOUR NEW STYLE
-    async function importData() {
-        const raw = document.getElementById('bulk-input').value;
-        const lines = raw.split('\n');
-        
-        // This regex looks for: T2 : 31k (cà phê)
-        const lineRegex = /^(T\d|CN)\s*:\s*([^(\n]+)\(([^)]+)\)/i;
-
-        lines.forEach(line => {
-            const match = line.match(lineRegex);
-            if (match) {
-                const dayCode = match[1].toUpperCase();
-                const pricePart = match[2].trim();
-                const namePart = match[3].trim();
-
-                // Determine Date (Finding the closest past day matching T2, T3 etc)
-                // For simplicity, this uses "Today's" week or you can manually pick a date
-                const date = document.getElementById('date-input').value; 
-
-                const names = namePart.split('+').map(n => n.trim());
-                const prices = pricePart.split('+').map(p => parseSmartPrice(p));
-
-                processAndAdd(date, names, prices);
+        function parseSmartPrice(str) {
+            if (!str) return 0;
+            let val = str.toLowerCase().replace(/vnd|vnđ| /g, '');
+            if (val.includes('k')) {
+                return (parseFloat(val.replace('k', '')) || 0) * 1000;
             }
-        });
+            return parseFloat(val) || 0;
+        }
 
-        render();
-        await sync();
-        document.getElementById('bulk-section').style.display = 'none';
-    }
+        async function loadData() {
+            try {
+                const res = await fetch(API);
+                const data = await res.json();
+                spendings = Array.isArray(data) ? data : [];
+                render();
+            } catch (e) {
+                console.error(e);
+                document.getElementById('list').innerText = "CONNECTION ERROR";
+            }
+        }
 
-    function copyWeeklyReport() {
-        const sorted = spendings.sort((a,b) => new Date(a.date) - new Date(b.date));
-        let total = 0;
-        let report = "=== WEEKLY REPORT ===\n\n";
-        sorted.forEach(s => {
-            total += s.cost;
-            const date = new Date(s.date).toLocaleDateString('vi-VN');
-            const items = s.details.map(d => `  ${d.name} : ${new Intl.NumberFormat('vi-VN').format(d.price)}`).join('\n');
-            report += `${getDayVn(s.date)} (${date})\n${items}\n=> ${new Intl.NumberFormat('vi-VN').format(s.cost)}\n\n`;
-        });
-        report += `---------------------\nGRAND TOTAL: ${new Intl.NumberFormat('vi-VN').format(total)}vnd`;
-        navigator.clipboard.writeText(report);
-        alert("Report copied!");
-    }
+        async function sync() {
+            document.getElementById('status').innerText = "Syncing...";
+            try {
+                await fetch(API, { method: "POST", body: JSON.stringify(spendings) });
+                document.getElementById('status').innerText = "Synced";
+            } catch (e) {
+                document.getElementById('status').innerText = "Sync Failed";
+            }
+        }
 
-    function copyItem(i) {
-        const s = spendings[i];
-        const itemsText = (s.details || []).map(item => `${item.name} : ${new Intl.NumberFormat('vi-VN').format(item.price)}`).join('\n');
-        const text = `${getDayVn(s.date)} : ${new Intl.NumberFormat('vi-VN').format(s.cost)} (${s.details.map(d=>d.name.toLowerCase()).join(' + ')})`;
-        navigator.clipboard.writeText(text);
-        alert("COPIED!");
-    }
+        function render() {
+            const container = document.getElementById('list');
+            if (!spendings || spendings.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:#666;'>NO RECEIPTS YET</p>";
+                document.getElementById('grand-total').innerText = "0";
+                return;
+            }
 
-    function editItem(i) { document.getElementById('date-input').value = spendings[i].date; document.getElementById('item-input').focus(); }
-    async function deleteItem(i) { if(confirm("VOID?")) { spendings.splice(i, 1); render(); await sync(); } }
+            const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
+            let total = 0;
 
-    loadData();
-</script>
+            container.innerHTML = sorted.map((s, idx) => {
+                total += s.cost;
+                const itemsHtml = (s.details || []).map(item => `
+                    <div class="item-row">
+                        <span>${item.name}</span>
+                        <span>${formatMoney(item.price)}</span>
+                    </div>
+                `).join('');
+
+                return `
+                    <div class="entry">
+                        <div class="receipt-header">
+                            <h3>SPEND LOG</h3>
+                            <div style="font-size:10px;">-=-=-=-=-=-=-=-=-</div>
+                            <small>${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})</small>
+                        </div>
+                        <div class="receipt-body">${itemsHtml}</div>
+                        <div class="total-row">
+                            <span>TOTAL</span>
+                            <span>${formatMoney(s.cost)}vnd</span>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-s" onclick="copyItem('${s.date}')">COPY</button>
+                            <button class="btn-s" onclick="editItem('${s.date}')">ADD</button>
+                            <button class="btn-del" onclick="deleteItem('${s.date}')">VOID</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('grand-total').innerText = formatMoney(total);
+        }
+
+        async function saveEntry() {
+            const date = document.getElementById('date-input').value;
+            const itemInput = document.getElementById('item-input').value || "MISC";
+            const costInput = document.getElementById('cost-input').value;
+            
+            if (!date || !costInput) return alert("Enter date and price");
+
+            const names = itemInput.split('+').map(s => s.trim());
+            const prices = costInput.split('+').map(s => parseSmartPrice(s.trim()));
+
+            addRecord(date, names, prices);
+            await sync();
+            render();
+            document.getElementById('item-input').value = "";
+            document.getElementById('cost-input').value = "";
+        }
+
+        function addRecord(date, names, prices) {
+            let entry = spendings.find(s => s.date === date);
+            if (!entry) {
+                entry = { date, cost: 0, details: [] };
+                spendings.push(entry);
+            }
+            if (!entry.details) entry.details = [];
+
+            names.forEach((name, i) => {
+                const p = prices[i] !== undefined ? prices[i] : (prices[0] || 0);
+                entry.details.push({ name: name.toUpperCase(), price: p });
+            });
+            entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
+        }
+
+        function toggleBulk() {
+            const b = document.getElementById('bulk-section');
+            b.style.display = b.style.display === 'none' ? 'block' : 'none';
+        }
+
+        async function importData() {
+            const raw = document.getElementById('bulk-input').value;
+            const lines = raw.split('\n');
+            const dateRef = document.getElementById('date-input').value; 
+
+            lines.forEach(line => {
+                const match = line.match(/^(T\d|CN)\s*:\s*([^(\n]+)\(([^)]+)\)/i);
+                if (match) {
+                    const priceStr = match[2].trim();
+                    const nameStr = match[3].trim();
+                    const names = nameStr.split('+').map(n => n.trim());
+                    const prices = priceStr.split('+').map(p => parseSmartPrice(p.trim()));
+                    addRecord(dateRef, names, prices);
+                }
+            });
+
+            await sync();
+            render();
+            toggleBulk();
+            document.getElementById('bulk-input').value = "";
+        }
+
+        function copyItem(date) {
+            const s = spendings.find(x => x.date === date);
+            const items = s.details.map(d => `${d.name}: ${formatMoney(d.price)}`).join('\n');
+            const text = `Spend log\n-=-=-=-=-=-\n${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${items}\n---------------------\nTotal : ${formatMoney(s.cost)}vnd`;
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+        }
+
+        function editItem(date) {
+            document.getElementById('date-input').value = date;
+            document.getElementById('item-input').focus();
+        }
+
+        async function deleteItem(date) {
+            if(confirm("VOID RECEIPT?")) {
+                spendings = spendings.filter(s => s.date !== date);
+                await sync();
+                render();
+            }
+        }
+
+        function copyWeeklyReport() {
+            let total = 0;
+            let report = "=== WEEKLY REPORT ===\n\n";
+            spendings.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
+                total += s.cost;
+                const items = s.details.map(d => `  - ${d.name}: ${formatMoney(d.price)}`).join('\n');
+                report += `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${items}\nDay Total: ${formatMoney(s.cost)}vnd\n\n`;
+            });
+            report += `---------------------\nGRAND TOTAL: ${formatMoney(total)}vnd`;
+            navigator.clipboard.writeText(report);
+            alert("Full report copied!");
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
