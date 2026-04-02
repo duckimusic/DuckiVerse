@@ -6,14 +6,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <title>SpendLog</title>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #58a6ff; --danger: #f85149; }
+        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #58a6ff; --danger: #f85149; --warning: #f1e05a; }
         body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; padding: 20px; margin: 0; display: flex; justify-content: center; }
         .app { max-width: 400px; width: 100%; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        input { width: 100%; padding: 12px; margin: 8px 0; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
         .btn-main { background: var(--accent); color: white; margin-top: 10px; }
+        .btn-import-toggle { background: transparent; color: var(--warning); border: 1px solid var(--warning); margin-bottom: 15px; font-size: 13px; padding: 5px; width: auto; }
         .entry { background: var(--card); border: 1px solid #30363d; padding: 15px; border-radius: 12px; margin-bottom: 12px; animation: fadeIn 0.3s ease; }
         .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
         .btn-s { background: #30363d; color: var(--text); font-size: 12px; padding: 8px; }
@@ -30,19 +31,32 @@
         
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên món hàng (VD: Bún chả)">
-            <input type="number" id="cost-input" placeholder="Số tiền (VNĐ)">
+            <input type="text" id="item-input" placeholder="Tên (VD: Nước + Thuốc)">
+            <input type="text" id="cost-input" placeholder="Số tiền (VD: 90000 + 15000)">
             <button class="btn-main" onclick="saveEntry()">Lưu Chi Tiêu</button>
         </div>
 
-        <div id="list">Loading records...</div>
+        <div style="text-align: right;">
+            <button class="btn-import-toggle" onclick="document.getElementById('bulk-section').style.display='block'">+ Nhập dữ liệu cũ</button>
+        </div>
+
+        <div id="bulk-section" class="input-group" style="display:none; border-color: var(--warning);">
+            <small style="color: var(--warning);">Định dạng: YYYY-MM-DD | Tên | Số tiền</small>
+            <textarea id="bulk-input" rows="5" placeholder="2026-03-24 | Đổ xăng | 90000"></textarea>
+            <button class="btn-s" style="background:var(--warning); color:black;" onclick="importData()">Xác Nhận Import</button>
+            <button class="btn-s" style="margin-top:5px;" onclick="document.getElementById('bulk-section').style.display='none'">Đóng</button>
+        </div>
+
+        <div id="list">Loading...</div>
     </div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
 
-        // Helper for Vietnamese Days
+        // Set default date to today
+        document.getElementById('date-input').valueAsDate = new Date();
+
         function getDayVn(dateString) {
             const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
             const d = new Date(dateString);
@@ -55,46 +69,48 @@
                 spendings = await res.json();
                 render();
             } catch (e) {
-                document.getElementById('list').innerText = "Offline or Connection Error";
+                document.getElementById('list').innerText = "Lỗi kết nối Cloudflare";
             }
+        }
+
+        function evalCost(str) {
+            try {
+                // Allows users to type "90000 + 15000"
+                return Function(`'use strict'; return (${str.replace(/[^-+*/\d.]/g, '')})`)();
+            } catch { return 0; }
         }
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
-            const item = document.getElementById('item-input').value;
-            const cost = document.getElementById('cost-input').value;
+            const newItem = document.getElementById('item-input').value || "Chi tiêu";
+            const costStr = document.getElementById('cost-input').value;
             
-            if (!date) return alert("Vui lòng chọn ngày");
+            if (!date || !costStr) return alert("Vui lòng nhập ngày và số tiền");
 
             const status = document.getElementById('status');
             status.innerText = "Saving...";
 
-            const newEntry = { 
-                date, 
-                item: item || "Không tên", 
-                cost: cost === "" ? "" : parseFloat(cost) 
-            };
-            
-            // Check if we are updating an existing day or adding a new one
+            const newCostValue = evalCost(costStr);
             const index = spendings.findIndex(s => s.date === date);
             
-            if (index > -1) spendings[index] = newEntry;
-            else spendings.push(newEntry);
+            if (index > -1) {
+                // Logic: If date exists, append name and ADD the costs
+                const oldItem = spendings[index].item;
+                spendings[index].item = oldItem.includes(newItem) ? oldItem : `${oldItem} + ${newItem}`;
+                spendings[index].cost = (parseFloat(spendings[index].cost) || 0) + newCostValue;
+            } else {
+                spendings.push({ date, item: newItem, cost: newCostValue });
+            }
 
             render();
             await sync();
             status.innerText = "Synced";
-            
-            // Clear inputs
             document.getElementById('cost-input').value = "";
             document.getElementById('item-input').value = "";
         }
 
         async function sync() {
-            await fetch(API, {
-                method: "POST",
-                body: JSON.stringify(spendings)
-            });
+            await fetch(API, { method: "POST", body: JSON.stringify(spendings) });
         }
 
         function render() {
@@ -107,14 +123,14 @@
             container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => {
                 const dayVn = getDayVn(s.date);
                 const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
-                const formattedCost = s.cost === "" ? "---" : new Intl.NumberFormat('vi-VN').format(s.cost) + "₫";
+                const formattedCost = new Intl.NumberFormat('vi-VN').format(s.cost) + "₫";
                 
                 return `
                     <div class="entry">
                         <div style="display:flex; justify-content:space-between; align-items: baseline;">
                             <div>
                                 <strong style="color:var(--accent);">${dayVn} (${formattedDate})</strong><br>
-                                <span style="font-size: 0.9rem; color: #8b949e;">${s.item || 'Chi tiêu'}</span>
+                                <span style="font-size: 0.9rem; color: #8b949e;">${s.item}</span>
                             </div>
                             <strong style="font-size: 1.1rem;">${formattedCost}</strong>
                         </div>
@@ -130,35 +146,25 @@
 
         function copyItem(i) {
             const s = spendings[i];
-            const dayVn = getDayVn(s.date);
-            const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
-            const formattedCost = s.cost === "" ? "0" : new Intl.NumberFormat('vi-VN').format(s.cost);
-            const text = `${dayVn} (${formattedDate}) : ${formattedCost}đ (${s.item || 'Chi tiêu'})`;
-            
+            const text = `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')}) : ${new Intl.NumberFormat('vi-VN').format(s.cost)}đ (${s.item})`;
             navigator.clipboard.writeText(text);
-            alert("Đã sao chép!");
+            alert("Đã copy!");
         }
 
         function editItem(i) {
             document.getElementById('date-input').value = spendings[i].date;
-            document.getElementById('item-input').value = spendings[i].item || "";
+            document.getElementById('item-input').value = spendings[i].item;
             document.getElementById('cost-input').value = spendings[i].cost;
             window.scrollTo(0,0);
         }
 
         async function deleteItem(i) {
-    if(confirm("Bạn có chắc muốn xoá hoàn toàn khoản chi này?")) {
-        // This removes 1 item at index i from the list
-        spendings.splice(i, 1); 
-        
-        render(); // Update the screen immediately
-        await sync(); // Send the shortened list to Cloudflare
-        
-        const status = document.getElementById('status');
-        status.innerText = "Đã xoá";
-        setTimeout(() => status.innerText = "Synced", 2000);
-    }
-}
+            if(confirm("Xóa dòng này?")) {
+                spendings.splice(i, 1); 
+                render();
+                await sync();
+            }
+        }
 
         loadData();
     </script>
