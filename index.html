@@ -9,36 +9,19 @@
         :root { --bg: #1a1a1a; --paper: #fdfdfd; --ink: #222; --accent: #58a6ff; --danger: #f85149; --warning: #d4a017; }
         body { background: var(--bg); color: #eee; font-family: 'Courier New', Courier, monospace; padding: 20px; margin: 0; display: flex; justify-content: center; }
         .app { max-width: 400px; width: 100%; }
-        
-        /* Input Group remains dark/modern */
         .input-group { background: #222; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 20px; }
         input, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #444; color: #0f0; border-radius: 4px; box-sizing: border-box; font-size: 16px; font-family: monospace; }
-        
         button { width: 100%; padding: 12px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; font-family: sans-serif; }
         .btn-main { background: var(--accent); color: white; margin-top: 10px; }
         .btn-import-toggle { background: transparent; color: #888; border: 1px solid #444; margin-bottom: 15px; font-size: 12px; padding: 5px; }
-
-        /* The Receipt Style */
-        .entry { 
-            background: var(--paper); 
-            color: var(--ink); 
-            padding: 20px; 
-            margin-bottom: 25px; 
-            box-shadow: 5px 5px 0px rgba(0,0,0,0.5);
-            position: relative;
-            border-bottom: 4px dashed var(--paper);
-        }
-        
+        .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5); position: relative; border-bottom: 4px dashed var(--paper); animation: fadeIn 0.3s ease; }
         .receipt-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
         .receipt-header h3 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
-        
         .item-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin: 5px 0; }
         .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.2rem; }
-        
-        .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; pt: 10px;}
+        .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
         .btn-s { background: #eee; color: #555; font-size: 11px; padding: 6px; }
         .btn-del { background: transparent; border: 1px solid #ffcccb; color: var(--danger); font-size: 11px; }
-        
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -48,30 +31,25 @@
             <h2 style="font-family: sans-serif;">SpendLog</h2>
             <small id="status" style="color: #666;">Synced</small>
         </div>
-        
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="ITEM NAME">
-            <input type="text" id="cost-input" placeholder="AMOUNT (math ok)">
+            <input type="text" id="item-input" placeholder="Tên (VD: Thuốc + Nước)">
+            <input type="text" id="cost-input" placeholder="Giá (VD: 26000 + 15000)">
             <button class="btn-main" onclick="saveEntry()">PRINT RECEIPT</button>
         </div>
-
         <div style="text-align: right;">
             <button class="btn-import-toggle" onclick="document.getElementById('bulk-section').style.display='block'">+ BULK IMPORT</button>
         </div>
-
         <div id="bulk-section" class="input-group" style="display:none;">
             <textarea id="bulk-input" rows="4" placeholder="YYYY-MM-DD | Item | Price"></textarea>
             <button class="btn-s" onclick="importData()">CONFIRM</button>
         </div>
-
         <div id="list">Scanning...</div>
     </div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-
         document.getElementById('date-input').valueAsDate = new Date();
 
         function getDayVn(dateString) {
@@ -86,9 +64,7 @@
                 const data = await res.json();
                 spendings = Array.isArray(data) ? data : [];
                 render();
-            } catch (e) {
-                document.getElementById('list').innerText = "CONNECTION ERROR";
-            }
+            } catch (e) { document.getElementById('list').innerText = "CONNECTION ERROR"; }
         }
 
         function evalCost(str) {
@@ -98,22 +74,30 @@
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
-            const itemName = document.getElementById('item-input').value || "MISC ITEM";
-            const costStr = document.getElementById('cost-input').value;
-            
-            if (!date || !costStr) return alert("Missing Info");
+            const itemInput = document.getElementById('item-input').value || "MISC ITEM";
+            const costInput = document.getElementById('cost-input').value;
+            if (!date || !costInput) return alert("Missing Info");
 
-            const costValue = evalCost(costStr);
+            const itemNames = itemInput.split('+').map(s => s.trim());
+            const costParts = costInput.split('+').map(s => evalCost(s));
+
             const index = spendings.findIndex(s => s.date === date);
-            
+            let currentDay;
+
             if (index > -1) {
-                if (!spendings[index].details) spendings[index].details = [{ name: spendings[index].item, price: spendings[index].cost }];
-                spendings[index].details.push({ name: itemName, price: costValue });
-                spendings[index].cost = spendings[index].details.reduce((sum, item) => sum + item.price, 0);
+                currentDay = spendings[index];
+                if (!currentDay.details) currentDay.details = [{ name: currentDay.item, price: currentDay.cost }];
             } else {
-                spendings.push({ date, cost: costValue, details: [{ name: itemName, price: costValue }] });
+                currentDay = { date, cost: 0, details: [] };
+                spendings.push(currentDay);
             }
 
+            itemNames.forEach((name, i) => {
+                const price = costParts[i] || 0;
+                currentDay.details.push({ name: name, price: price });
+            });
+
+            currentDay.cost = currentDay.details.reduce((sum, item) => sum + item.price, 0);
             render();
             await sync();
             document.getElementById('cost-input').value = "";
@@ -132,70 +116,54 @@
                 container.innerHTML = "<p style='text-align:center;'>NO RECORDS FOUND</p>";
                 return;
             }
-
             container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => {
                 const dayVn = getDayVn(s.date);
                 const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
-                const totalCost = new Intl.NumberFormat('vi-VN').format(s.cost) + "vn₫";
-                
-                const itemsHtml = (s.details || [{name: s.item, price: s.cost}]).map(item => `
+                const itemsHtml = (s.details || []).map(item => `
                     <div class="item-row">
-                        <span>${item.name.toUpperCase()}</span>
-                        <span>${new Intl.NumberFormat('vi-VN').format(item.price)}</span>
-                    </div>
-                `).join('');
+                        <span>${item.name}</span>
+                        <span>${new Intl.NumberFormat('vi-VN').format(item.price)}vnd</span>
+                    </div>`).join('');
 
                 return `
                     <div class="entry">
                         <div class="receipt-header">
                             <h3>SPEND LOG</h3>
-                            <small>${dayVn} - ${formattedDate}</small>
+                            <div style="font-size:10px;">-=-=-=-=-=-=-=-=-</div>
+                            <small>${dayVn} (${formattedDate})</small>
                         </div>
-                        <div class="receipt-body">
-                            ${itemsHtml}
-                        </div>
+                        <div class="receipt-body">${itemsHtml}</div>
                         <div class="total-row">
                             <span>TOTAL</span>
-                            <span>${totalCost}</span>
+                            <span>${new Intl.NumberFormat('vi-VN').format(s.cost)}vnd</span>
                         </div>
-                        <div style="text-align:center; margin-top:10px; font-size:10px; color:#999;">
-                            *** THANK YOU ***
-                        </div>
+                        <div style="text-align:center; margin-top:10px; font-size:10px; color:#999;">*****************</div>
                         <div class="actions">
                             <button class="btn-s" onclick="copyItem(${i})">COPY</button>
-                            <button class="btn-s" onclick="editItem(${i})">EDIT</button>
+                            <button class="btn-s" onclick="editItem(${i})">ADD</button>
                             <button class="btn-del" onclick="deleteItem(${i})">VOID</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }).join('');
         }
 
         function copyItem(i) {
             const s = spendings[i];
-            const itemsText = (s.details || []).map(item => `- ${item.name} (${item.price}vn₫)`).join('\n');
-            const text = `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${itemsText}\nTotal: ${s.cost}vn₫`;
+            const itemsText = (s.details || []).map(item => `${item.name} : ${new Intl.NumberFormat('vi-VN').format(item.price)}vnd`).join('\n');
+            const text = `Spend log\n-=-=-=-=-=-\n${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${itemsText}\n---------------------\nTotal : ${new Intl.NumberFormat('vi-VN').format(s.cost)}vnd`;
             navigator.clipboard.writeText(text);
-            alert("COPIED TO CLIPBOARD");
+            alert("COPIED!");
         }
 
-        function editItem(i) {
-            document.getElementById('date-input').value = spendings[i].date;
-            window.scrollTo(0,0);
-        }
+        function editItem(i) { document.getElementById('date-input').value = spendings[i].date; document.getElementById('item-input').focus(); }
 
         async function deleteItem(i) {
-            if(confirm("VOID THIS RECEIPT?")) {
-                spendings.splice(i, 1); 
-                render();
-                await sync();
-            }
+            if(confirm("VOID THIS RECEIPT?")) { spendings.splice(i, 1); render(); await sync(); }
         }
 
         async function importData() {
             const raw = document.getElementById('bulk-input').value;
-            const lines = raw.split('\n');
-            lines.forEach(line => {
+            raw.split('\n').forEach(line => {
                 if (!line.trim()) return;
                 const [date, item, cost] = line.split('|').map(s => s.trim());
                 if (date && cost) {
@@ -205,16 +173,11 @@
                         if (!spendings[idx].details) spendings[idx].details = [{ name: spendings[idx].item, price: spendings[idx].cost }];
                         spendings[idx].details.push({ name: item, price: costVal });
                         spendings[idx].cost = spendings[idx].details.reduce((sum, itm) => sum + itm.price, 0);
-                    } else {
-                        spendings.push({ date, cost: costVal, details: [{ name: item, price: costVal }] });
-                    }
+                    } else { spendings.push({ date, cost: costVal, details: [{ name: item, price: costVal }] }); }
                 }
             });
-            render();
-            await sync();
-            document.getElementById('bulk-section').style.display = 'none';
+            render(); await sync(); document.getElementById('bulk-section').style.display = 'none';
         }
-
         loadData();
     </script>
 </body>
