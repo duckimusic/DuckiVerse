@@ -12,22 +12,23 @@
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
+        
         .ana-toggle { display: flex; background: #000; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
         .ana-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #8b949e; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 6px; }
         .ana-btn.active { background: #30363d; color: white; }
+        
         .stat-focus { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; text-align: center; margin-bottom: 15px; }
         .stat-focus h1 { margin: 10px 0 0; font-size: 32px; color: var(--gold); }
         
-        /* Receipt & Item Delete */
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
-        .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 16px; margin-left: 10px; border: 1px solid transparent; border-radius: 4px; }
-        .del-item:hover { background: #fee2e2; border-color: #fca5a5; }
+        .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
         
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
-        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-save:disabled { opacity: 0.5; cursor: wait; }
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; }
     </style>
 </head>
@@ -42,9 +43,9 @@
     <div id="view-logs" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Ví dụ: Trà sữa + Bánh)">
-            <input type="text" id="cost-input" placeholder="Giá (Ví dụ: 30k + 20k)">
-            <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
+            <input type="text" id="item-input" placeholder="Tên (Trà sữa + Bánh)">
+            <input type="text" id="cost-input" placeholder="Giá (30k + 20k)">
+            <button id="save-btn" class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="list" style="margin-top:20px"></div>
     </div>
@@ -64,7 +65,7 @@
 
     <div id="view-import" class="view">
         <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)"></textarea>
-        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
+        <button id="import-btn" class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
     </div>
 
     <div class="total-footer">TOTAL: <span id="stat-footer-total">0</span>₫</div>
@@ -82,13 +83,22 @@
         }
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
-        async function load(){
-            const res = await fetch(API);
-            spendings = await res.json() || [];
-            render();
+        async function sync(){
+            const btns = document.querySelectorAll('.btn-save');
+            btns.forEach(b => b.disabled = true);
+            try {
+                await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
+            } catch(e) { alert("Sync failed!"); }
+            btns.forEach(b => b.disabled = false);
         }
 
-        async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
+        async function load(){
+            try {
+                const res = await fetch(API);
+                spendings = await res.json() || [];
+                render();
+            } catch(e) { document.getElementById('list').innerText = "Database offline."; }
+        }
 
         function render(){
             const vnNow = getVnTime();
@@ -99,7 +109,7 @@
             let grandTotal = 0, weeklySum = 0, monthlySum = 0;
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            document.getElementById('list').innerHTML = sorted.map((s, entryIdx) => {
+            document.getElementById('list').innerHTML = sorted.map(s => {
                 const parts = s.date.split('-');
                 const entryDate = new Date(parts[0], parts[1]-1, parts[2]);
                 const entryMonday = getMonday(entryDate);
@@ -111,11 +121,11 @@
                 return `
                 <div class="receipt">
                     <div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>
-                    ${s.details.map((i, itemIdx) => `
+                    ${s.details.map((i, idx) => `
                         <div class="r-row">
                             <div style="flex:1"><span>${i.name}</span></div>
                             <div style="width:80px; text-align:right"><span>${format(i.price)}₫</span></div>
-                            <div class="del-item" onclick="deleteLine('${s.date}', ${itemIdx})">×</div>
+                            <div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div>
                         </div>
                     `).join('')}
                     <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
@@ -140,22 +150,12 @@
             document.getElementById('stat-footer-total').innerText = format(grand);
         }
 
-        // --- NEW DELETE LOGIC ---
         async function deleteLine(date, itemIdx) {
             const entry = spendings.find(s => s.date === date);
             if (!entry) return;
-
-            // Remove the specific item from the details array
             entry.details.splice(itemIdx, 1);
-
-            // Recalculate the entry's total cost
             entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
-
-            // If the entry has no items left, remove the whole date
-            if (entry.details.length === 0) {
-                spendings = spendings.filter(s => s.date !== date);
-            }
-
+            if (entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
             await sync();
             render();
         }
@@ -193,7 +193,7 @@
 
                 const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
                 let match;
-                while((match = regex.exec(line)){
+                while((match = regex.exec(line)) !== null) {
                     const p = parseFloat(match[1].replace(/k/g, '000'));
                     const items = match[2].split(/[+/]/).map(n => n.trim());
                     let entry = spendings.find(s => s.date === ds);
