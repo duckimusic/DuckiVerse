@@ -43,7 +43,7 @@
         <div style="clear:both;"></div>
 
         <div id="bulk-section" class="input-group" style="display:none;">
-            <textarea id="bulk-input" rows="5" placeholder="T2 : 31k (cà phê)"></textarea>
+            <textarea id="bulk-input" rows="5" placeholder="(23/3 - 29/3 / 2025)&#10;T2 : 31k (cà phê)"></textarea>
             <button class="btn-s" onclick="importData()">CONFIRM IMPORT</button>
         </div>
 
@@ -58,8 +58,8 @@
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
+        const dayMap = { 'T2': 1, 'T3': 2, 'T4': 3, 'T5': 4, 'T6': 5, 'T7': 6, 'CN': 0 };
 
-        // Set default date to today
         document.getElementById('date-input').valueAsDate = new Date();
 
         function getDayVn(dateString) {
@@ -75,9 +75,7 @@
         function parseSmartPrice(str) {
             if (!str) return 0;
             let val = str.toLowerCase().replace(/vnd|vnđ| /g, '');
-            if (val.includes('k')) {
-                return (parseFloat(val.replace('k', '')) || 0) * 1000;
-            }
+            if (val.includes('k')) return (parseFloat(val.replace('k', '')) || 0) * 1000;
             return parseFloat(val) || 0;
         }
 
@@ -88,7 +86,6 @@
                 spendings = Array.isArray(data) ? data : [];
                 render();
             } catch (e) {
-                console.error(e);
                 document.getElementById('list').innerText = "CONNECTION ERROR";
             }
         }
@@ -103,6 +100,28 @@
             }
         }
 
+        function calculateActualDate(rangeStr, dayCode) {
+            try {
+                const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
+                const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
+                const match = rangeStr.match(/(\d+)\/(\d+)/);
+                if (!match) return document.getElementById('date-input').value;
+
+                const startDay = parseInt(match[1]);
+                const startMonth = parseInt(match[2]) - 1;
+                let d = new Date(year, startMonth, startDay);
+                
+                const targetDayNum = dayMap[dayCode.toUpperCase()];
+                let diff = targetDayNum - 1; 
+                if (targetDayNum === 0) diff = 6;
+                
+                d.setDate(d.getDate() + diff);
+                return d.toISOString().split('T')[0];
+            } catch (e) {
+                return document.getElementById('date-input').value;
+            }
+        }
+
         function render() {
             const container = document.getElementById('list');
             if (!spendings || spendings.length === 0) {
@@ -114,7 +133,7 @@
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
             let total = 0;
 
-            container.innerHTML = sorted.map((s, idx) => {
+            container.innerHTML = sorted.map((s) => {
                 total += s.cost;
                 const itemsHtml = (s.details || []).map(item => `
                     <div class="item-row">
@@ -147,11 +166,23 @@
             document.getElementById('grand-total').innerText = formatMoney(total);
         }
 
+        function addRecord(date, names, prices) {
+            let entry = spendings.find(s => s.date === date);
+            if (!entry) {
+                entry = { date, cost: 0, details: [] };
+                spendings.push(entry);
+            }
+            names.forEach((name, i) => {
+                const p = prices[i] !== undefined ? prices[i] : (prices[0] || 0);
+                entry.details.push({ name: name.toUpperCase(), price: p });
+            });
+            entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
+        }
+
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
             const itemInput = document.getElementById('item-input').value || "MISC";
             const costInput = document.getElementById('cost-input').value;
-            
             if (!date || !costInput) return alert("Enter date and price");
 
             const names = itemInput.split('+').map(s => s.trim());
@@ -164,40 +195,39 @@
             document.getElementById('cost-input').value = "";
         }
 
-        function addRecord(date, names, prices) {
-            let entry = spendings.find(s => s.date === date);
-            if (!entry) {
-                entry = { date, cost: 0, details: [] };
-                spendings.push(entry);
-            }
-            if (!entry.details) entry.details = [];
-
-            names.forEach((name, i) => {
-                const p = prices[i] !== undefined ? prices[i] : (prices[0] || 0);
-                entry.details.push({ name: name.toUpperCase(), price: p });
-            });
-            entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
-        }
-
-        function toggleBulk() {
-            const b = document.getElementById('bulk-section');
-            b.style.display = b.style.display === 'none' ? 'block' : 'none';
-        }
-
         async function importData() {
             const raw = document.getElementById('bulk-input').value;
             const lines = raw.split('\n');
-            const dateRef = document.getElementById('date-input').value; 
+            let rangeHeader = lines.find(l => l.includes('/') && l.includes('('));
+            let lastUsedDay = null;
 
             lines.forEach(line => {
-                const match = line.match(/^(T\d|CN)\s*:\s*([^(\n]+)\(([^)]+)\)/i);
-                if (match) {
-                    const priceStr = match[2].trim();
-                    const nameStr = match[3].trim();
-                    const names = nameStr.split('+').map(n => n.trim());
-                    const prices = priceStr.split('+').map(p => parseSmartPrice(p.trim()));
-                    addRecord(dateRef, names, prices);
-                }
+                const parts = line.split(/\s\+\s/);
+                parts.forEach((part) => {
+                    const match = part.match(/(T\d|CN)\s*:\s*([^(\n]+)\(([^)]+)\)/i) || 
+                                  part.match(/^\s*([^(\n]+)\(([^)]+)\)/i);
+
+                    if (match) {
+                        let dayCode, priceStr, nameStr;
+                        if (match.length === 4) {
+                            dayCode = match[1].toUpperCase();
+                            priceStr = match[2];
+                            nameStr = match[3];
+                            lastUsedDay = dayCode;
+                        } else {
+                            dayCode = lastUsedDay;
+                            priceStr = match[1];
+                            nameStr = match[2];
+                        }
+
+                        if (dayCode) {
+                            const targetDate = calculateActualDate(rangeHeader || "", dayCode);
+                            const names = nameStr.split('+').map(n => n.trim());
+                            const prices = priceStr.split('+').map(p => parseSmartPrice(p.trim()));
+                            addRecord(targetDate, names, prices);
+                        }
+                    }
+                });
             });
 
             await sync();
@@ -214,23 +244,10 @@
             alert("Copied!");
         }
 
-        function editItem(date) {
-            document.getElementById('date-input').value = date;
-            document.getElementById('item-input').focus();
-        }
-
-        async function deleteItem(date) {
-            if(confirm("VOID RECEIPT?")) {
-                spendings = spendings.filter(s => s.date !== date);
-                await sync();
-                render();
-            }
-        }
-
         function copyWeeklyReport() {
             let total = 0;
             let report = "=== WEEKLY REPORT ===\n\n";
-            spendings.sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
+            [...spendings].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
                 total += s.cost;
                 const items = s.details.map(d => `  - ${d.name}: ${formatMoney(d.price)}`).join('\n');
                 report += `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${items}\nDay Total: ${formatMoney(s.cost)}vnd\n\n`;
@@ -239,6 +256,10 @@
             navigator.clipboard.writeText(report);
             alert("Full report copied!");
         }
+
+        function editItem(date) { document.getElementById('date-input').value = date; document.getElementById('item-input').focus(); }
+        async function deleteItem(date) { if(confirm("VOID?")) { spendings = spendings.filter(s => s.date !== date); await sync(); render(); } }
+        function toggleBulk() { const b = document.getElementById('bulk-section'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
 
         loadData();
     </script>
