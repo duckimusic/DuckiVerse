@@ -16,7 +16,6 @@
         .btn-import-toggle { background: transparent; color: #888; border: 1px solid #444; margin-bottom: 15px; font-size: 12px; padding: 5px; width: auto; float: right; }
         .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5); border-bottom: 4px dashed var(--paper); }
         .receipt-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
-        .receipt-header h3 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         .item-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin: 5px 0; }
         .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; }
         .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
@@ -57,6 +56,8 @@
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
+        
+        // Corrected Offsets: T2 is Monday (0 days from the start of the week range)
         const dayMap = { 'T2': 0, 'T3': 1, 'T4': 2, 'T5': 3, 'T6': 4, 'T7': 5, 'CN': 6 };
 
         document.getElementById('date-input').valueAsDate = new Date();
@@ -64,14 +65,14 @@
         function getDayVn(dateString) {
             const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
             const d = new Date(dateString);
-            return days[d.getDay()];
+            return days[d.getUTCDay()]; // Use UTC to stay consistent with storage
         }
 
         function formatMoney(num) {
             return new Intl.NumberFormat('vi-VN').format(Math.round(num));
         }
 
-        function parseSmartPrice(str) {
+        function parsePrice(str) {
             if (!str) return 0;
             let val = str.toLowerCase().replace(/vnd|vnđ| /g, '');
             if (val.includes('k')) return (parseFloat(val.replace('k', '')) || 0) * 1000;
@@ -104,15 +105,15 @@
                 const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
                 const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
                 const match = rangeStr.match(/(\d+)\/(\d+)/);
+                
                 if (!match) return document.getElementById('date-input').value;
 
-                const startDay = parseInt(match[1]);
-                const startMonth = parseInt(match[2]) - 1;
+                // Create the start of the week (T2)
+                // Using UTC 00:00 to avoid any local timezone shifts
+                let d = new Date(Date.UTC(year, parseInt(match[2]) - 1, parseInt(match[1])));
                 
-                // Use noon to avoid timezone shifting
-                let d = new Date(year, startMonth, startDay, 12, 0, 0);
                 const offset = dayMap[dayCode.toUpperCase()];
-                if (offset !== undefined) d.setDate(d.getDate() + offset);
+                if (offset !== undefined) d.setUTCDate(d.getUTCDate() + offset);
                 
                 return d.toISOString().split('T')[0];
             } catch (e) {
@@ -127,8 +128,7 @@
                 spendings.push(entry);
             }
             names.forEach((name, i) => {
-                const p = prices[i];
-                entry.details.push({ name: name.toUpperCase(), price: p });
+                entry.details.push({ name: name.toUpperCase().trim(), price: prices[i] });
             });
             entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
         }
@@ -136,27 +136,25 @@
         async function importData() {
             const raw = document.getElementById('bulk-input').value;
             const lines = raw.split('\n');
-            let rangeHeader = lines.find(l => l.includes('/') && l.includes('(')) || "";
-            let activeDay = null;
+            const header = lines.find(l => l.includes('/') && l.includes('(')) || "";
+            let currentDay = null;
 
             lines.forEach(line => {
-                if (!line.trim() || line === rangeHeader) return;
+                if (!line.trim() || line === header) return;
                 const dayMatch = line.match(/^(T\d|CN)\s*:/i);
-                if (dayMatch) activeDay = dayMatch[1].toUpperCase();
-                if (!activeDay) return;
+                if (dayMatch) currentDay = dayMatch[1].toUpperCase();
+                if (!currentDay) return;
 
-                const targetDate = calculateActualDate(rangeHeader, activeDay);
+                const targetDate = calculateActualDate(header, currentDay);
                 const content = line.replace(/^(T\d|CN)\s*:\s*/i, '');
-                const segments = content.split(/\s\+\s/);
-
-                segments.forEach(seg => {
-                    const m = seg.match(/([\d.k]+)\s*\(([^)]+)\)/i);
-                    if (m) {
-                        const price = parseSmartPrice(m[1]);
-                        const subNames = m[2].split(/\s\+\s|\//).map(n => n.trim());
-                        addRecord(targetDate, subNames, Array(subNames.length).fill(price / subNames.length));
-                    }
-                });
+                
+                const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
+                let match;
+                while ((match = regex.exec(content)) !== null) {
+                    const price = parsePrice(match[1]);
+                    const items = match[2].split(/[+/]/).map(n => n.trim()).filter(n => n);
+                    addRecord(targetDate, items, Array(items.length).fill(price / items.length));
+                }
             });
             await sync(); render(); toggleBulk();
             document.getElementById('bulk-input').value = "";
@@ -164,33 +162,38 @@
 
         function render() {
             const container = document.getElementById('list');
-            if (!spendings || spendings.length === 0) {
-                container.innerHTML = "NO RECORDS";
-                return;
-            }
+            if (!spendings.length) { container.innerHTML = "NO RECORDS"; return; }
+            
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
             let grand = 0;
+            
             container.innerHTML = sorted.map(s => {
                 grand += s.cost;
                 return `
-                    <div class="entry">
-                        <div class="receipt-header"><h3>SPEND LOG</h3><small>${getDayVn(s.date)} (${s.date})</small></div>
-                        <div class="receipt-body">${s.details.map(d => `<div class="item-row"><span>${d.name}</span><span>${formatMoney(d.price)}</span></div>`).join('')}</div>
-                        <div class="total-row"><span>TOTAL</span><span>${formatMoney(s.cost)}vnd</span></div>
-                        <div class="actions">
-                            <button class="btn-s" onclick="copyItem('${s.date}')">COPY</button>
-                            <button class="btn-s" onclick="editItem('${s.date}')">ADD</button>
-                            <button class="btn-del" onclick="deleteItem('${s.date}')">VOID</button>
-                        </div>
-                    </div>`;
+                <div class="entry">
+                    <div class="receipt-header">
+                        <h3>SPEND LOG</h3>
+                        <small>${getDayVn(s.date)} (${s.date.split('-').reverse().join('/')})</small>
+                    </div>
+                    <div class="receipt-body">
+                        ${s.details.map(d => `<div class="item-row"><span>${d.name}</span><span>${formatMoney(d.price)}</span></div>`).join('')}
+                    </div>
+                    <div class="total-row"><span>TOTAL</span><span>${formatMoney(s.cost)}vnd</span></div>
+                    <div class="actions">
+                        <button class="btn-s" onclick="copyItem('${s.date}')">COPY</button>
+                        <button class="btn-s" onclick="editItem('${s.date}')">ADD</button>
+                        <button class="btn-del" onclick="deleteItem('${s.date}')">VOID</button>
+                    </div>
+                </div>`;
             }).join('');
             document.getElementById('grand-total').innerText = formatMoney(grand);
         }
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
-            const names = document.getElementById('item-input').value.split('+').map(s => s.trim());
-            const prices = document.getElementById('cost-input').value.split('+').map(s => parseSmartPrice(s.trim()));
+            const names = document.getElementById('item-input').value.split('+');
+            const priceVal = document.getElementById('cost-input').value;
+            const prices = priceVal.split('+').map(p => parsePrice(p.trim()));
             addRecord(date, names, prices);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
@@ -199,8 +202,8 @@
         function copyItem(date) {
             const s = spendings.find(x => x.date === date);
             const items = s.details.map(d => `${d.name}: ${formatMoney(d.price)}`).join('\n');
-            const text = `Spend log\n-=-=-=-=-=-\n${getDayVn(s.date)} (${s.date})\n${items}\n---------------------\nTotal : ${formatMoney(s.cost)}vnd`;
-            navigator.clipboard.writeText(text); alert("Copied!");
+            navigator.clipboard.writeText(`LOG ${s.date}\n${items}\nTotal: ${formatMoney(s.cost)}`);
+            alert("Copied!");
         }
 
         function copyWeeklyReport() {
@@ -215,7 +218,7 @@
         function editItem(date) { document.getElementById('date-input').value = date; document.getElementById('item-input').focus(); }
         async function deleteItem(date) { if(confirm("VOID?")) { spendings = spendings.filter(s => s.date !== date); await sync(); render(); } }
         function toggleBulk() { const b = document.getElementById('bulk-section'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; }
-
+        
         loadData();
     </script>
 </body>
