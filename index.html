@@ -27,7 +27,7 @@
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
         
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
-        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
         .btn-save:disabled { opacity: 0.5; cursor: wait; }
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; }
     </style>
@@ -43,8 +43,8 @@
     <div id="view-logs" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Trà sữa + Bánh)">
-            <input type="text" id="cost-input" placeholder="Giá (30k + 20k)">
+            <input type="text" id="item-input" placeholder="Tên (Ví dụ: Xăng + Ăn sáng)">
+            <input type="text" id="cost-input" placeholder="Giá (Ví dụ: 50k + 30k)">
             <button id="save-btn" class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="list" style="margin-top:20px"></div>
@@ -64,7 +64,7 @@
     </div>
 
     <div id="view-import" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)"></textarea>
+        <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)&#10;...&#10;=> 624k"></textarea>
         <button id="import-btn" class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
     </div>
 
@@ -76,28 +76,28 @@
         let currentAna = 'daily';
 
         function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
+        
         function getMonday(dateObj) {
-            let d = new Date(dateObj); d.setHours(0,0,0,0);
-            let day = d.getDay(); let diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+            let d = new Date(dateObj);
+            d.setHours(0,0,0,0);
+            let day = d.getDay();
+            // In JS, Sunday is 0. We need Monday (1) to be start of week.
+            let diff = d.getDate() - day + (day === 0 ? -6 : 1);
             return new Date(d.setDate(diff)).getTime();
         }
+
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
         async function sync(){
-            const btns = document.querySelectorAll('.btn-save');
-            btns.forEach(b => b.disabled = true);
-            try {
-                await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
-            } catch(e) { alert("Sync failed!"); }
-            btns.forEach(b => b.disabled = false);
+            document.querySelectorAll('.btn-save').forEach(b => b.disabled = true);
+            await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
+            document.querySelectorAll('.btn-save').forEach(b => b.disabled = false);
         }
 
         async function load(){
-            try {
-                const res = await fetch(API);
-                spendings = await res.json() || [];
-                render();
-            } catch(e) { document.getElementById('list').innerText = "Database offline."; }
+            const res = await fetch(API);
+            spendings = await res.json() || [];
+            render();
         }
 
         function render(){
@@ -132,32 +132,27 @@
                 </div>`;
             }).join('');
 
-            updateStats(weeklySum, monthlySum, grandTotal);
-        }
-
-        function updateStats(weekly, monthly, grand) {
             if(currentAna === 'daily') {
                 document.getElementById('ana-label').innerText = "Weekly Daily Avg";
-                document.getElementById('ana-value').innerText = format(weekly / 7) + "₫";
+                document.getElementById('ana-value').innerText = format(weeklySum / 7) + "₫";
             } else if(currentAna === 'weekly') {
                 document.getElementById('ana-label').innerText = "Spent This Week (M-S)";
-                document.getElementById('ana-value').innerText = format(weekly) + "₫";
+                document.getElementById('ana-value').innerText = format(weeklySum) + "₫";
             } else {
                 document.getElementById('ana-label').innerText = "Spent This Month";
-                document.getElementById('ana-value').innerText = format(monthly) + "₫";
+                document.getElementById('ana-value').innerText = format(monthlySum) + "₫";
             }
-            document.getElementById('stat-grand').innerText = format(grand) + "₫";
-            document.getElementById('stat-footer-total').innerText = format(grand);
+            document.getElementById('stat-grand').innerText = format(grandTotal) + "₫";
+            document.getElementById('stat-footer-total').innerText = format(grandTotal);
         }
 
-        async function deleteLine(date, itemIdx) {
+        async function deleteLine(date, idx) {
             const entry = spendings.find(s => s.date === date);
             if (!entry) return;
-            entry.details.splice(itemIdx, 1);
+            entry.details.splice(idx, 1);
             entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
             if (entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
-            await sync();
-            render();
+            await sync(); render();
         }
 
         async function saveEntry(){
@@ -183,10 +178,15 @@
             const dayMap = { 'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6 };
             
             lines.forEach(line => {
+                // SKIP IF LINE STARTS WITH "=>" (Total indicator)
+                if(line.trim().startsWith('=>')) return;
+
                 const dm = line.match(/^(T\d|CN)\s*:/i);
                 if(!dm) return;
+
                 const m = header.match(/(\d+)\/(\d+)/);
-                const yr = header.match(/\b(20\d{2})\b/) ? header.match(/\b(20\d{2})\b/)[1] : 2026;
+                const yr = 2026; // Static for your records
+                
                 let d = new Date(yr, m[2]-1, m[1]);
                 d.setDate(d.getDate() + dayMap[dm[1].toUpperCase()]);
                 const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -203,6 +203,7 @@
                 }
             });
             await sync(); render(); showView('stats');
+            document.getElementById('bulk-input').value = "";
         }
 
         function showView(v){
