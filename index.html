@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>SpendLog</title>
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --text: #c9d1d9; --accent: #58a6ff; --danger: #f85149; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; padding: 20px; margin: 0; display: flex; justify-content: center; }
+        .app { max-width: 400px; width: 100%; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #0d1117; border: 1px solid #30363d; color: white; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; transition: opacity 0.2s; }
+        .btn-main { background: var(--accent); color: white; margin-top: 10px; }
+        .entry { background: var(--card); border: 1px solid #30363d; padding: 15px; border-radius: 12px; margin-bottom: 12px; animation: fadeIn 0.3s ease; }
+        .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 12px; }
+        .btn-s { background: #30363d; color: var(--text); font-size: 12px; padding: 8px; }
+        .btn-del { background: transparent; border: 1px solid var(--danger); color: var(--danger); font-size: 12px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div class="header">
+            <h2>Weekly Spending</h2>
+            <small id="status" style="color: gray;">Synced</small>
+        </div>
+        
+        <div class="input-group">
+            <input type="date" id="date-input">
+            <input type="number" id="cost-input" placeholder="0.00" step="0.01">
+            <button class="btn-main" onclick="saveEntry()">Save / Update</button>
+        </div>
+
+        <div id="list">Loading records...</div>
+    </div>
+
+    <script>
+        // PASTE YOUR WORKER URL BELOW
+        const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
+        let spendings = [];
+
+        async function loadData() {
+            try {
+                const res = await fetch(API);
+                spendings = await res.json();
+                render();
+            } catch (e) {
+                document.getElementById('list').innerText = "Offline or Connection Error";
+            }
+        }
+
+        async function saveEntry() {
+            const date = document.getElementById('date-input').value;
+            const cost = document.getElementById('cost-input').value;
+            if (!date) return alert("Please select a date");
+
+            const status = document.getElementById('status');
+            status.innerText = "Saving...";
+
+            const newEntry = { date, cost: cost === "" ? "" : parseFloat(cost) };
+            const index = spendings.findIndex(s => s.date === date);
+            
+            if (index > -1) spendings[index] = newEntry;
+            else spendings.push(newEntry);
+
+            render();
+            await sync();
+            status.innerText = "Synced";
+            document.getElementById('cost-input').value = "";
+        }
+
+        async function sync() {
+            await fetch(API, {
+                method: "POST",
+                body: JSON.stringify(spendings)
+            });
+        }
+
+        function render() {
+            const container = document.getElementById('list');
+            if (spendings.length === 0) {
+                container.innerHTML = "<p style='text-align:center; color:gray;'>No entries found.</p>";
+                return;
+            }
+
+            container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => `
+                <div class="entry">
+                    <div style="display:flex; justify-content:space-between;">
+                        <strong>${s.date}</strong>
+                        <span style="color:var(--accent); font-weight:bold;">${s.cost === "" ? "---" : "$" + s.cost}</span>
+                    </div>
+                    <div class="actions">
+                        <button class="btn-s" onclick="copyItem(${i})">Copy</button>
+                        <button class="btn-s" onclick="editItem(${i})">Edit</button>
+                        <button class="btn-del" onclick="deleteItem(${i})">Clear</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function copyItem(i) {
+            const s = spendings[i];
+            const text = `Report: ${s.date} | Total: ${s.cost === "" ? "N/A" : "$" + s.cost}`;
+            navigator.clipboard.writeText(text);
+            alert("Copied!");
+        }
+
+        function editItem(i) {
+            document.getElementById('date-input').value = spendings[i].date;
+            document.getElementById('cost-input').value = spendings[i].cost;
+            window.scrollTo(0,0);
+        }
+
+        async function deleteItem(i) {
+            if(confirm("Clear this cost?")) {
+                spendings[i].cost = "";
+                render();
+                await sync();
+            }
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
