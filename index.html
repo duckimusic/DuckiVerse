@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.0</title>
+    <title>SpendLog 11.1 - Precise Edition</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
@@ -47,8 +47,8 @@
     <div id="view-daily" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
-            <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
+            <input type="text" id="item-input" placeholder="Tên (Xăng + Ăn sáng)">
+            <input type="text" id="cost-input" placeholder="Giá (50k + 30k)">
             <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="daily-list" style="margin-top:20px"></div>
@@ -81,6 +81,7 @@
             return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
         }
 
+        // Precise integer formatting
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
         async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
@@ -99,9 +100,10 @@
 
             // Render Daily Receipts
             document.getElementById('daily-list').innerHTML = sortedDaily.map(s => {
-                grandTotal += s.cost;
+                const dayTotal = Math.round(s.cost);
+                grandTotal += dayTotal;
                 const mID = getMondayID(s.date);
-                weeklyBuckets[mID] = (weeklyBuckets[mID] || 0) + s.cost;
+                weeklyBuckets[mID] = (weeklyBuckets[mID] || 0) + dayTotal;
 
                 const [y, m, d] = s.date.split('-');
                 return `
@@ -110,11 +112,11 @@
                     ${s.details.map((item, idx) => `
                         <div class="r-row">
                             <span style="flex:1">${item.name}</span>
-                            <span style="width:80px; text-align:right">${format(item.price)}₫</span>
+                            <span style="width:100px; text-align:right">${format(item.price)}₫</span>
                             <div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div>
                         </div>
                     `).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
+                    <div class="r-total"><span>TOTAL</span><span>${format(dayTotal)}₫</span></div>
                 </div>`;
             }).join('');
 
@@ -136,7 +138,6 @@
 
         async function importData(){
             const raw = document.getElementById('bulk-input').value;
-            // Split by (DD/MM) header to handle multiple weeks
             const segments = raw.split(/\((?=\d+\/\d+)/); 
 
             segments.forEach(segment => {
@@ -157,19 +158,17 @@
                     dt.setDate(dt.getDate() + dayMap[dayKeyMatch[1].toUpperCase()]);
                     const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 
-                    // Sum ALL numbers in the line
                     const nums = line.match(/\d+[kK]?/g);
                     if(!nums || line.includes('X')) return;
                     
-                    const dailySum = nums.reduce((acc, n) => {
+                    const dailySum = Math.round(nums.reduce((acc, n) => {
                         let val = n.toLowerCase().replace('k', '000');
                         return acc + parseFloat(val);
-                    }, 0);
+                    }, 0));
 
                     const nameMatch = line.match(/\(([^)]+)\)/);
-                    const itemName = nameMatch ? nameMatch[1].toUpperCase() : "CHƯA PHÂN LOẠI";
+                    const itemName = nameMatch ? nameMatch[1].toUpperCase() : "EXPENSE";
 
-                    // Overwrite date entry to ensure individual persistence
                     spendings = spendings.filter(s => s.date !== ds);
                     spendings.push({
                         date: ds,
@@ -187,7 +186,7 @@
             const entry = spendings.find(s => s.date === date);
             if (entry) {
                 entry.details.splice(idx, 1);
-                entry.cost = entry.details.reduce((sum, i) => sum + i.price, 0);
+                entry.cost = Math.round(entry.details.reduce((sum, i) => sum + i.price, 0));
                 if (entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
                 await sync(); render();
             }
@@ -199,18 +198,18 @@
             const names = document.getElementById('item-input').value.split('+');
             const prices = document.getElementById('cost-input').value.split('+').map(p => {
                 let v = p.toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
-                return parseFloat(v) || 0;
+                return Math.round(parseFloat(v)) || 0;
             });
             let entry = spendings.find(s => s.date === d);
             if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
             names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:prices[i] || 0}));
-            entry.cost = entry.details.reduce((a,b) => a + b.price, 0);
+            entry.cost = Math.round(entry.details.reduce((a,b) => a + b.price, 0));
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
 
         async function clearAllData() {
-            if (confirm("THIS WILL WIPE EVERYTHING. Are you sure?")) {
+            if (confirm("Wipe everything?")) {
                 spendings = []; await sync(); render();
             }
         }
@@ -223,8 +222,6 @@
             render();
         }
 
-        const vnToday = getVnTime();
-        document.getElementById('date-input').value = `${vnToday.getFullYear()}-${String(vnToday.getMonth()+1).padStart(2,'0')}-${String(vnToday.getDate()).padStart(2,'0')}`;
         load();
     </script>
 </body>
