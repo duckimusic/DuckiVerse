@@ -30,17 +30,24 @@
         
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="number" id="cost-input" placeholder="0.00" step="0.01">
-            <button class="btn-main" onclick="saveEntry()">Save / Update</button>
+            <input type="text" id="item-input" placeholder="Tên món hàng (VD: Bún chả)">
+            <input type="number" id="cost-input" placeholder="Số tiền (VNĐ)">
+            <button class="btn-main" onclick="saveEntry()">Lưu Chi Tiêu</button>
         </div>
 
         <div id="list">Loading records...</div>
     </div>
 
     <script>
-        // PASTE YOUR WORKER URL BELOW
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
+
+        // Helper for Vietnamese Days
+        function getDayVn(dateString) {
+            const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+            const d = new Date(dateString);
+            return days[d.getDay()];
+        }
 
         async function loadData() {
             try {
@@ -54,13 +61,21 @@
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
+            const item = document.getElementById('item-input').value;
             const cost = document.getElementById('cost-input').value;
-            if (!date) return alert("Please select a date");
+            
+            if (!date) return alert("Vui lòng chọn ngày");
 
             const status = document.getElementById('status');
             status.innerText = "Saving...";
 
-            const newEntry = { date, cost: cost === "" ? "" : parseFloat(cost) };
+            const newEntry = { 
+                date, 
+                item: item || "Không tên", 
+                cost: cost === "" ? "" : parseFloat(cost) 
+            };
+            
+            // Check if we are updating an existing day or adding a new one
             const index = spendings.findIndex(s => s.date === date);
             
             if (index > -1) spendings[index] = newEntry;
@@ -69,7 +84,10 @@
             render();
             await sync();
             status.innerText = "Synced";
+            
+            // Clear inputs
             document.getElementById('cost-input').value = "";
+            document.getElementById('item-input').value = "";
         }
 
         async function sync() {
@@ -82,41 +100,56 @@
         function render() {
             const container = document.getElementById('list');
             if (spendings.length === 0) {
-                container.innerHTML = "<p style='text-align:center; color:gray;'>No entries found.</p>";
+                container.innerHTML = "<p style='text-align:center; color:gray;'>Chưa có dữ liệu.</p>";
                 return;
             }
 
-            container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => `
-                <div class="entry">
-                    <div style="display:flex; justify-content:space-between;">
-                        <strong>${s.date}</strong>
-                        <span style="color:var(--accent); font-weight:bold;">${s.cost === "" ? "---" : "$" + s.cost}</span>
+            container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => {
+                const dayVn = getDayVn(s.date);
+                const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
+                const formattedCost = s.cost === "" ? "---" : new Intl.NumberFormat('vi-VN').format(s.cost) + "₫";
+                
+                return `
+                    <div class="entry">
+                        <div style="display:flex; justify-content:space-between; align-items: baseline;">
+                            <div>
+                                <strong style="color:var(--accent);">${dayVn} (${formattedDate})</strong><br>
+                                <span style="font-size: 0.9rem; color: #8b949e;">${s.item || 'Chi tiêu'}</span>
+                            </div>
+                            <strong style="font-size: 1.1rem;">${formattedCost}</strong>
+                        </div>
+                        <div class="actions">
+                            <button class="btn-s" onclick="copyItem(${i})">Copy</button>
+                            <button class="btn-s" onclick="editItem(${i})">Sửa</button>
+                            <button class="btn-del" onclick="deleteItem(${i})">Xóa</button>
+                        </div>
                     </div>
-                    <div class="actions">
-                        <button class="btn-s" onclick="copyItem(${i})">Copy</button>
-                        <button class="btn-s" onclick="editItem(${i})">Edit</button>
-                        <button class="btn-del" onclick="deleteItem(${i})">Clear</button>
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function copyItem(i) {
             const s = spendings[i];
-            const text = `Report: ${s.date} | Total: ${s.cost === "" ? "N/A" : "$" + s.cost}`;
+            const dayVn = getDayVn(s.date);
+            const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
+            const formattedCost = s.cost === "" ? "0" : new Intl.NumberFormat('vi-VN').format(s.cost);
+            const text = `${dayVn} (${formattedDate}) : ${formattedCost}đ (${s.item || 'Chi tiêu'})`;
+            
             navigator.clipboard.writeText(text);
-            alert("Copied!");
+            alert("Đã sao chép!");
         }
 
         function editItem(i) {
             document.getElementById('date-input').value = spendings[i].date;
+            document.getElementById('item-input').value = spendings[i].item || "";
             document.getElementById('cost-input').value = spendings[i].cost;
             window.scrollTo(0,0);
         }
 
         async function deleteItem(i) {
-            if(confirm("Clear this cost?")) {
+            if(confirm("Xóa khoản chi này?")) {
                 spendings[i].cost = "";
+                spendings[i].item = "Đã xóa";
                 render();
                 await sync();
             }
