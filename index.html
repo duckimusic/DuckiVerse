@@ -16,6 +16,7 @@
         .btn-import-toggle { background: transparent; color: #888; border: 1px solid #444; margin-bottom: 15px; font-size: 12px; padding: 5px; width: auto; float: right; }
         .entry { background: var(--paper); color: var(--ink); padding: 20px; margin-bottom: 25px; box-shadow: 5px 5px 0px rgba(0,0,0,0.5); border-bottom: 4px dashed var(--paper); }
         .receipt-header { text-align: center; border-bottom: 1px dashed #ccc; padding-bottom: 10px; margin-bottom: 10px; }
+        .receipt-header h3 { margin: 0; text-transform: uppercase; letter-spacing: 2px; }
         .item-row { display: flex; justify-content: space-between; font-size: 0.95rem; margin: 5px 0; }
         .total-row { border-top: 2px solid #222; margin-top: 10px; padding-top: 10px; display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem; }
         .actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-top: 20px; border-top: 1px solid #eee; padding-top: 10px;}
@@ -56,7 +57,7 @@
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-        const dayMap = { 'T2': 1, 'T3': 2, 'T4': 3, 'T5': 4, 'T6': 5, 'T7': 6, 'CN': 0 };
+        const dayMap = { 'T2': 0, 'T3': 1, 'T4': 2, 'T5': 3, 'T6': 4, 'T7': 5, 'CN': 6 };
 
         document.getElementById('date-input').valueAsDate = new Date();
 
@@ -67,7 +68,7 @@
         }
 
         function formatMoney(num) {
-            return new Intl.NumberFormat('vi-VN').format(num);
+            return new Intl.NumberFormat('vi-VN').format(Math.round(num));
         }
 
         function parseSmartPrice(str) {
@@ -98,6 +99,27 @@
             }
         }
 
+        function calculateActualDate(rangeStr, dayCode) {
+            try {
+                const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
+                const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
+                const match = rangeStr.match(/(\d+)\/(\d+)/);
+                if (!match) return document.getElementById('date-input').value;
+
+                const startDay = parseInt(match[1]);
+                const startMonth = parseInt(match[2]) - 1;
+                
+                // Use noon to avoid timezone shifting
+                let d = new Date(year, startMonth, startDay, 12, 0, 0);
+                const offset = dayMap[dayCode.toUpperCase()];
+                if (offset !== undefined) d.setDate(d.getDate() + offset);
+                
+                return d.toISOString().split('T')[0];
+            } catch (e) {
+                return document.getElementById('date-input').value;
+            }
+        }
+
         function addRecord(date, names, prices) {
             let entry = spendings.find(s => s.date === date);
             if (!entry) {
@@ -111,46 +133,33 @@
             entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
         }
 
-        function calculateActualDate(rangeStr, dayCode) {
-            const yearMatch = rangeStr.match(/\b(20\d{2})\b/);
-            const year = yearMatch ? parseInt(yearMatch[1]) : 2026;
-            const match = rangeStr.match(/(\d+)\/(\d+)/);
-            if (!match) return document.getElementById('date-input').value;
-
-            const startDay = parseInt(match[1]);
-            const startMonth = parseInt(match[2]) - 1;
-            let d = new Date(year, startMonth, startDay);
-            const targetDayNum = dayMap[dayCode.toUpperCase()];
-            let diff = targetDayNum - 1; 
-            if (targetDayNum === 0) diff = 6;
-            d.setDate(d.getDate() + diff);
-            return d.toISOString().split('T')[0];
-        }
-
         async function importData() {
             const raw = document.getElementById('bulk-input').value;
             const lines = raw.split('\n');
             let rangeHeader = lines.find(l => l.includes('/') && l.includes('(')) || "";
-            let currentDay = null;
+            let activeDay = null;
 
             lines.forEach(line => {
+                if (!line.trim() || line === rangeHeader) return;
                 const dayMatch = line.match(/^(T\d|CN)\s*:/i);
-                if (dayMatch) currentDay = dayMatch[1].toUpperCase();
-                if (!currentDay) return;
+                if (dayMatch) activeDay = dayMatch[1].toUpperCase();
+                if (!activeDay) return;
 
-                const targetDate = calculateActualDate(rangeHeader, currentDay);
-                const segments = line.replace(/^(T\d|CN)\s*:\s*/i, '').split(/\s\+\s/);
+                const targetDate = calculateActualDate(rangeHeader, activeDay);
+                const content = line.replace(/^(T\d|CN)\s*:\s*/i, '');
+                const segments = content.split(/\s\+\s/);
 
                 segments.forEach(seg => {
                     const m = seg.match(/([\d.k]+)\s*\(([^)]+)\)/i);
                     if (m) {
                         const price = parseSmartPrice(m[1]);
-                        const names = m[2].split(/\s\+\s|\//).map(n => n.trim());
-                        addRecord(targetDate, names, Array(names.length).fill(price / names.length));
+                        const subNames = m[2].split(/\s\+\s|\//).map(n => n.trim());
+                        addRecord(targetDate, subNames, Array(subNames.length).fill(price / subNames.length));
                     }
                 });
             });
             await sync(); render(); toggleBulk();
+            document.getElementById('bulk-input').value = "";
         }
 
         function render() {
@@ -189,13 +198,17 @@
 
         function copyItem(date) {
             const s = spendings.find(x => x.date === date);
-            const text = `Date: ${s.date}\nTotal: ${formatMoney(s.cost)}vnd`;
+            const items = s.details.map(d => `${d.name}: ${formatMoney(d.price)}`).join('\n');
+            const text = `Spend log\n-=-=-=-=-=-\n${getDayVn(s.date)} (${s.date})\n${items}\n---------------------\nTotal : ${formatMoney(s.cost)}vnd`;
             navigator.clipboard.writeText(text); alert("Copied!");
         }
 
         function copyWeeklyReport() {
-            let r = "REPORT:\n";
-            spendings.forEach(s => r += `${s.date}: ${formatMoney(s.cost)}\n`);
+            let r = "=== WEEKLY REPORT ===\n\n";
+            [...spendings].sort((a,b) => new Date(a.date) - new Date(b.date)).forEach(s => {
+                const items = s.details.map(d => `  - ${d.name}: ${formatMoney(d.price)}`).join('\n');
+                r += `${getDayVn(s.date)} (${s.date})\n${items}\nDay Total: ${formatMoney(s.cost)}vnd\n\n`;
+            });
             navigator.clipboard.writeText(r); alert("Report Copied!");
         }
 
