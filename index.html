@@ -31,8 +31,8 @@
         
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (VD: Nước + Thuốc)">
-            <input type="text" id="cost-input" placeholder="Số tiền (VD: 90000 + 15000)">
+            <input type="text" id="item-input" placeholder="Tên (VD: Nước ngọt)">
+            <input type="text" id="cost-input" placeholder="Số tiền (VD: 15000)">
             <button class="btn-main" onclick="saveEntry()">Lưu Chi Tiêu</button>
         </div>
 
@@ -54,7 +54,6 @@
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
 
-        // Set default date to today
         document.getElementById('date-input').valueAsDate = new Date();
 
         function getDayVn(dateString) {
@@ -66,7 +65,8 @@
         async function loadData() {
             try {
                 const res = await fetch(API);
-                spendings = await res.json();
+                const data = await res.json();
+                spendings = Array.isArray(data) ? data : [];
                 render();
             } catch (e) {
                 document.getElementById('list').innerText = "Lỗi kết nối Cloudflare";
@@ -74,15 +74,13 @@
         }
 
         function evalCost(str) {
-            try {
-                // Allows users to type "90000 + 15000"
-                return Function(`'use strict'; return (${str.replace(/[^-+*/\d.]/g, '')})`)();
-            } catch { return 0; }
+            try { return Function(`'use strict'; return (${str.replace(/[^-+*/\d.]/g, '')})`)(); }
+            catch { return 0; }
         }
 
         async function saveEntry() {
             const date = document.getElementById('date-input').value;
-            const newItem = document.getElementById('item-input').value || "Chi tiêu";
+            const itemName = document.getElementById('item-input').value || "Chi tiêu";
             const costStr = document.getElementById('cost-input').value;
             
             if (!date || !costStr) return alert("Vui lòng nhập ngày và số tiền");
@@ -90,16 +88,17 @@
             const status = document.getElementById('status');
             status.innerText = "Saving...";
 
-            const newCostValue = evalCost(costStr);
+            const costValue = evalCost(costStr);
             const index = spendings.findIndex(s => s.date === date);
             
             if (index > -1) {
-                // Logic: If date exists, append name and ADD the costs
-                const oldItem = spendings[index].item;
-                spendings[index].item = oldItem.includes(newItem) ? oldItem : `${oldItem} + ${newItem}`;
-                spendings[index].cost = (parseFloat(spendings[index].cost) || 0) + newCostValue;
+                if (!spendings[index].details) {
+                    spendings[index].details = [{ name: spendings[index].item, price: spendings[index].cost }];
+                }
+                spendings[index].details.push({ name: itemName, price: costValue });
+                spendings[index].cost = spendings[index].details.reduce((sum, item) => sum + item.price, 0);
             } else {
-                spendings.push({ date, item: newItem, cost: newCostValue });
+                spendings.push({ date, cost: costValue, details: [{ name: itemName, price: costValue }] });
             }
 
             render();
@@ -107,6 +106,29 @@
             status.innerText = "Synced";
             document.getElementById('cost-input').value = "";
             document.getElementById('item-input').value = "";
+        }
+
+        async function importData() {
+            const raw = document.getElementById('bulk-input').value;
+            const lines = raw.split('\n');
+            lines.forEach(line => {
+                if (!line.trim()) return;
+                const [date, item, cost] = line.split('|').map(s => s.trim());
+                if (date && cost) {
+                    const costVal = evalCost(cost);
+                    const idx = spendings.findIndex(s => s.date === date);
+                    if (idx > -1) {
+                        if (!spendings[idx].details) spendings[idx].details = [{ name: spendings[idx].item, price: spendings[idx].cost }];
+                        spendings[idx].details.push({ name: item, price: costVal });
+                        spendings[idx].cost = spendings[idx].details.reduce((sum, itm) => sum + itm.price, 0);
+                    } else {
+                        spendings.push({ date, cost: costVal, details: [{ name: item, price: costVal }] });
+                    }
+                }
+            });
+            render();
+            await sync();
+            document.getElementById('bulk-section').style.display = 'none';
         }
 
         async function sync() {
@@ -123,16 +145,23 @@
             container.innerHTML = spendings.sort((a,b) => new Date(b.date) - new Date(a.date)).map((s, i) => {
                 const dayVn = getDayVn(s.date);
                 const formattedDate = new Date(s.date).toLocaleDateString('vi-VN');
-                const formattedCost = new Intl.NumberFormat('vi-VN').format(s.cost) + "₫";
-                
+                const totalCost = new Intl.NumberFormat('vi-VN').format(s.cost) + "vn₫";
+                const itemsHtml = (s.details || [{name: s.item, price: s.cost}]).map(item => `
+                    <div style="display:flex; justify-content:space-between; font-size: 0.9rem; margin-top: 4px; color: #8b949e;">
+                        <span>- ${item.name}</span>
+                        <span>(${new Intl.NumberFormat('vi-VN').format(item.price)}vn₫)</span>
+                    </div>
+                `).join('');
+
                 return `
                     <div class="entry">
-                        <div style="display:flex; justify-content:space-between; align-items: baseline;">
-                            <div>
-                                <strong style="color:var(--accent);">${dayVn} (${formattedDate})</strong><br>
-                                <span style="font-size: 0.9rem; color: #8b949e;">${s.item}</span>
-                            </div>
-                            <strong style="font-size: 1.1rem;">${formattedCost}</strong>
+                        <strong style="color:var(--accent);">${dayVn} (${formattedDate})</strong>
+                        <div style="margin: 8px 0; border-bottom: 1px dashed #30363d; padding-bottom: 8px;">
+                            ${itemsHtml}
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items: center;">
+                            <span style="font-weight:bold; color:white;">Total:</span>
+                            <strong style="font-size: 1.2rem; color: var(--warning);">${totalCost}</strong>
                         </div>
                         <div class="actions">
                             <button class="btn-s" onclick="copyItem(${i})">Copy</button>
@@ -146,20 +175,20 @@
 
         function copyItem(i) {
             const s = spendings[i];
-            const text = `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')}) : ${new Intl.NumberFormat('vi-VN').format(s.cost)}đ (${s.item})`;
+            const itemsText = (s.details || []).map(item => `- ${item.name} (${item.price}vn₫)`).join('\n');
+            const text = `${getDayVn(s.date)} (${new Date(s.date).toLocaleDateString('vi-VN')})\n${itemsText}\nTotal: ${new Intl.NumberFormat('vi-VN').format(s.cost)}vn₫`;
             navigator.clipboard.writeText(text);
-            alert("Đã copy!");
+            alert("Đã copy checklist!");
         }
 
         function editItem(i) {
-            document.getElementById('date-input').value = spendings[i].date;
-            document.getElementById('item-input').value = spendings[i].item;
-            document.getElementById('cost-input').value = spendings[i].cost;
-            window.scrollTo(0,0);
+            const s = spendings[i];
+            document.getElementById('date-input').value = s.date;
+            alert("Bạn có thể thêm món mới vào ngày này!");
         }
 
         async function deleteItem(i) {
-            if(confirm("Xóa dòng này?")) {
+            if(confirm("Xóa toàn bộ ngày này?")) {
                 spendings.splice(i, 1); 
                 render();
                 await sync();
