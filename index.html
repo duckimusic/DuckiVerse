@@ -3,28 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.4 - Full Feature</title>
+    <title>SpendLog 11.5 - Absolute Integers</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
-        
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
         .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-        
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
-        
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
-        
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .week-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--gold); }
-        
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; }
     </style>
 </head>
@@ -46,12 +41,10 @@
         <div id="daily-list" style="margin-top:20px"></div>
     </div>
 
-    <div id="view-weekly" class="view">
-        <div id="weekly-breakdown"></div>
-    </div>
+    <div id="view-weekly" class="view"><div id="weekly-breakdown"></div></div>
 
     <div id="view-tools" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="Paste (DD/MM) report here..."></textarea>
+        <textarea id="bulk-input" rows="10" placeholder="Paste report here..."></textarea>
         <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
         <button class="btn-save" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
     </div>
@@ -62,18 +55,39 @@
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
 
-        function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.floor(n)); }
-        function toSafeInt(val) {
-            let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
-            return Math.floor(parseInt(clean, 10) || 0);
+        // Formatting that treats everything as a clean integer string
+        function format(n){ 
+            return new Intl.NumberFormat('vi-VN').format(Math.trunc(Number(n))); 
         }
 
-        async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
+        // The "Wall": Forces input into a pure integer
+        function toInt(val) {
+            let s = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
+            return Math.trunc(parseInt(s, 10) || 0);
+        }
+
+        async function sync(){ 
+            // Ensure every cost is a clean number before stringifying for storage
+            const cleanData = spendings.map(s => ({
+                ...s,
+                cost: Math.trunc(s.cost),
+                details: s.details.map(d => ({ ...d, price: Math.trunc(d.price) }))
+            }));
+            await fetch(API, {method:"POST", body:JSON.stringify(cleanData)}); 
+        }
 
         async function load(){
-            const res = await fetch(API);
-            spendings = await res.json() || [];
-            render();
+            try {
+                const res = await fetch(API);
+                const data = await res.json();
+                // Strip any existing decimals upon loading from the database
+                spendings = (data || []).map(s => ({
+                    ...s,
+                    cost: Math.trunc(s.cost),
+                    details: s.details.map(d => ({ ...d, price: Math.trunc(d.price) }))
+                }));
+                render();
+            } catch(e) { console.error("Load failed"); }
         }
 
         function getMondayID(dateStr) {
@@ -82,18 +96,19 @@
             let day = date.getDay();
             let diff = date.getDate() - day + (day === 0 ? -6 : 1);
             let monday = new Date(date.setDate(diff));
-            return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
+            return monday.toISOString().split('T')[0];
         }
 
         function render(){
-            let total = 0;
+            let grandTotal = 0;
             let weeks = {};
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
-                total += s.cost;
+                const dayTotal = Math.trunc(s.cost);
+                grandTotal += dayTotal;
                 const wk = getMondayID(s.date);
-                weeks[wk] = (weeks[wk] || 0) + s.cost;
+                weeks[wk] = (weeks[wk] || 0) + dayTotal;
                 const [y, m, d] = s.date.split('-');
                 return `
                 <div class="receipt">
@@ -103,7 +118,7 @@
                             <span>${item.name}</span>
                             <span>${format(item.price)}₫ <span class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
                         </div>`).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
+                    <div class="r-total"><span>TOTAL</span><span>${format(dayTotal)}₫</span></div>
                 </div>`;
             }).join('');
 
@@ -114,7 +129,7 @@
                     <span style="font-weight:900; color:var(--gold)">${format(weeks[w])}₫</span>
                 </div>`).join('');
 
-            document.getElementById('grand-total-val').innerText = format(total);
+            document.getElementById('grand-total-val').innerText = format(grandTotal);
         }
 
         async function saveEntry(){
@@ -124,8 +139,8 @@
             const costs = document.getElementById('cost-input').value.split('+');
             let entry = spendings.find(s => s.date === d);
             if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toSafeInt(costs[i])}));
-            entry.cost = entry.details.reduce((a,b) => a + b.price, 0);
+            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toInt(costs[i])}));
+            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
@@ -144,7 +159,7 @@
                     dt.setDate(dt.getDate() + dMap[day[1].toUpperCase()]);
                     const ds = dt.toISOString().split('T')[0];
                     const nums = line.match(/\d+k?/gi);
-                    const sum = nums.reduce((acc, n) => acc + toSafeInt(n), 0);
+                    const sum = nums.reduce((acc, n) => acc + toInt(n), 0);
                     const name = (line.match(/\(([^)]+)\)/) || [null, "EXPENSE"])[1].toUpperCase();
                     spendings = spendings.filter(s => s.date !== ds);
                     spendings.push({date: ds, cost: sum, details: [{name, price: sum}]});
@@ -171,8 +186,6 @@
             document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
         }
 
-        const vnNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-        document.getElementById('date-input').value = vnNow.toISOString().split('T')[0];
         load();
     </script>
 </body>
