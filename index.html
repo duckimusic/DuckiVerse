@@ -12,9 +12,6 @@
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
-        .ana-toggle { display: flex; background: #000; border-radius: 8px; padding: 4px; margin-bottom: 20px; }
-        .ana-btn { flex: 1; padding: 10px; border: none; background: transparent; color: #8b949e; font-size: 11px; font-weight: bold; cursor: pointer; border-radius: 6px; }
-        .ana-btn.active { background: #30363d; color: white; }
         .stat-focus { background: var(--card); padding: 25px; border-radius: 12px; border: 1px solid #30363d; text-align: center; margin-bottom: 15px; }
         .stat-focus h1 { margin: 10px 0 0; font-size: 32px; color: var(--gold); }
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
@@ -23,7 +20,8 @@
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
-        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 40px; font-size: 11px; letter-spacing: 1px; }
         .btn-save:disabled { opacity: 0.5; cursor: wait; }
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; }
     </style>
@@ -41,35 +39,38 @@
             <input type="date" id="date-input">
             <input type="text" id="item-input" placeholder="Tên (Xăng + Ăn sáng)">
             <input type="text" id="cost-input" placeholder="Giá (50k + 30k)">
-            <button id="save-btn" class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
+            <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="list" style="margin-top:20px"></div>
     </div>
 
     <div id="view-stats" class="view">
-        <div class="ana-toggle">
-            <button class="ana-btn active" onclick="setAna('daily')">DAILY AVG</button>
-            <button class="ana-btn" onclick="setAna('weekly')">THIS WEEK</button>
-            <button class="ana-btn" onclick="setAna('monthly')">THIS MONTH</button>
+        <div class="stat-focus">
+            <small>Weekly Daily Avg</small>
+            <h1 id="ana-daily">0₫</h1>
         </div>
         <div class="stat-focus">
-            <small id="ana-label">Weekly Daily Avg</small>
-            <h1 id="ana-value">0₫</h1>
+            <small>Spent This Week (M-S)</small>
+            <h1 id="ana-weekly" style="color:var(--accent)">0₫</h1>
         </div>
-        <div class="stat-focus" style="padding:15px"><small>Total of Everything</small><div id="stat-grand" style="font-weight:bold; margin-top:5px; font-size:20px">0₫</div></div>
+        <div class="stat-focus">
+            <small>Spent This Month</small>
+            <h1 id="ana-monthly" style="color:var(--green)">0₫</h1>
+        </div>
     </div>
 
     <div id="view-import" class="view">
         <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)&#10;...&#10;=> 624k"></textarea>
-        <button id="import-btn" class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
+        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
+        
+        <button class="btn-save btn-danger" onclick="clearAllData()">CLEAR ALL DATA</button>
     </div>
 
-    <div class="total-footer">TOTAL: <span id="stat-footer-total">0</span>₫</div>
+    <div class="total-footer">GRAND TOTAL: <span id="stat-footer-total">0</span>₫</div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-        let currentAna = 'daily';
 
         function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
         function getMonday(dateObj) {
@@ -80,15 +81,28 @@
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
         async function sync(){
-            document.querySelectorAll('.btn-save').forEach(b => b.disabled = true);
+            document.querySelectorAll('button').forEach(b => b.disabled = true);
             await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
-            document.querySelectorAll('.btn-save').forEach(b => b.disabled = false);
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
         }
 
         async function load(){
             const res = await fetch(API);
             spendings = await res.json() || [];
             render();
+        }
+
+        async function clearAllData() {
+            const firstCheck = confirm("Are you sure you want to delete ALL spending history?");
+            if (firstCheck) {
+                const secondCheck = confirm("This CANNOT be undone. Proceed to wipe everything?");
+                if (secondCheck) {
+                    spendings = [];
+                    await sync();
+                    render();
+                    showView('logs');
+                }
+            }
         }
 
         function render(){
@@ -107,20 +121,12 @@
                 grandTotal += s.cost;
                 if(entryMonday === currentMonday) weeklySum += s.cost;
                 if(entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) monthlySum += s.cost;
-                return `<div class="receipt"><div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>${s.details.map((i, idx) => `<div class="r-row"><div style="flex:1"><span>${i.name}</span></div><div style="width:80px; text-align:right"><span>${format(i.price)}₫</span></div><div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div></div>`;
+                return `<div class="receipt"><div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>${s.details.map((i, idx) => `<div class="r-row"><span>${i.name}</span><span>${format(i.price)}₫</span><div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div></div>`;
             }).join('');
 
-            if(currentAna === 'daily') {
-                document.getElementById('ana-label').innerText = "Weekly Daily Avg";
-                document.getElementById('ana-value').innerText = format(weeklySum / 7) + "₫";
-            } else if(currentAna === 'weekly') {
-                document.getElementById('ana-label').innerText = "Spent This Week (M-S)";
-                document.getElementById('ana-value').innerText = format(weeklySum) + "₫";
-            } else {
-                document.getElementById('ana-label').innerText = "Spent This Month";
-                document.getElementById('ana-value').innerText = format(monthlySum) + "₫";
-            }
-            document.getElementById('stat-grand').innerText = format(grandTotal) + "₫";
+            document.getElementById('ana-daily').innerText = format(weeklySum / 7) + "₫";
+            document.getElementById('ana-weekly').innerText = format(weeklySum) + "₫";
+            document.getElementById('ana-monthly').innerText = format(monthlySum) + "₫";
             document.getElementById('stat-footer-total').innerText = format(grandTotal);
         }
 
@@ -154,11 +160,8 @@
             const lines = raw.split('\n');
             const header = lines.find(l => l.includes('/')) || "";
             const dayMap = { 'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6 };
-            
             const mMatch = header.match(/(\d+)\/(\d+)/);
             if(!mMatch) return;
-            
-            // Step 1: Identify all 7 dates in this specific week block
             const yr = 2026;
             let weekDates = [];
             for(let i=0; i<7; i++){
@@ -166,19 +169,12 @@
                 d.setDate(d.getDate() + i);
                 weekDates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
             }
-
-            // Step 2: WIPE these 7 dates from current database to prevent doubling
             spendings = spendings.filter(s => !weekDates.includes(s.date));
-
-            // Step 3: Parse and add the new data
             lines.forEach(line => {
                 if(line.trim().startsWith('=>')) return;
                 const dm = line.match(/^(T\d|CN)\s*:/i);
                 if(!dm) return;
-                
-                const dayOffset = dayMap[dm[1].toUpperCase()];
-                const targetDate = weekDates[dayOffset];
-
+                const targetDate = weekDates[dayMap[dm[1].toUpperCase()]];
                 const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
                 let match;
                 while((match = regex.exec(line)) !== null) {
@@ -201,7 +197,7 @@
             document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
             render();
         }
-        function setAna(t){ currentAna = t; document.querySelectorAll('.ana-btn').forEach(b => b.classList.remove('active')); document.querySelector(`[onclick="setAna('${t}')"]`).classList.add('active'); render(); }
+
         const vnToday = getVnTime();
         document.getElementById('date-input').value = `${vnToday.getFullYear()}-${String(vnToday.getMonth()+1).padStart(2,'0')}-${String(vnToday.getDate()).padStart(2,'0')}`;
         load();
