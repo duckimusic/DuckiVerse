@@ -147,13 +147,18 @@
         }
 
         async function deleteItem(i) {
-            if(confirm("Xóa khoản chi này?")) {
-                spendings[i].cost = "";
-                spendings[i].item = "Đã xóa";
-                render();
-                await sync();
-            }
-        }
+    if(confirm("Bạn có chắc muốn xoá hoàn toàn khoản chi này?")) {
+        // This removes 1 item at index i from the list
+        spendings.splice(i, 1); 
+        
+        render(); // Update the screen immediately
+        await sync(); // Send the shortened list to Cloudflare
+        
+        const status = document.getElementById('status');
+        status.innerText = "Đã xoá";
+        setTimeout(() => status.innerText = "Synced", 2000);
+    }
+}
 
         loadData();
     </script>
