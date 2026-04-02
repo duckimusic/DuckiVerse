@@ -3,75 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog Pro</title>
+    <title>SpendLog 11.0</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
+        
+        /* Navigation */
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
         .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
         
-        /* Analytics Cards */
-        .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .mini-card { background: var(--card); padding: 15px; border-radius: 10px; border: 1px solid #30363d; text-align: center; }
-        .mini-card small { font-size: 10px; color: #8b949e; text-transform: uppercase; }
-        .mini-card div { font-size: 18px; font-weight: bold; margin-top: 5px; }
+        /* Weekly Summary Cards */
+        .week-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .week-label { font-size: 13px; font-weight: bold; color: #8b949e; }
+        .week-amount { font-size: 18px; font-weight: 900; color: var(--gold); }
 
-        /* Weekly List */
-        .week-row { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--accent); }
-        .week-info { display: flex; flex-direction: column; }
-        .week-date { font-size: 12px; color: #8b949e; }
-        .week-total { font-size: 18px; font-weight: bold; color: var(--gold); }
-
-        /* Receipt Style */
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        /* Daily Receipt Style */
+        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
         
-        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; }
+        /* Forms & Buttons */
+        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 40px; font-size: 11px; }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 50px; font-size: 11px; }
+        
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; }
     </style>
 </head>
 <body>
 
     <div class="nav-tabs">
-        <div class="nav-tab active" onclick="showView('logs')">DAILY LOGS</div>
-        <div class="nav-tab" onclick="showView('stats')">WEEKLY TOTALS</div>
-        <div class="nav-tab" onclick="showView('import')">BULK/RESET</div>
+        <div class="nav-tab active" onclick="showView('daily')">DAILY LOGS</div>
+        <div class="nav-tab" onclick="showView('weekly')">WEEKLY TOTALS</div>
+        <div class="nav-tab" onclick="showView('tools')">BULK/TOOLS</div>
     </div>
 
-    <div id="view-logs" class="view active">
+    <div id="view-daily" class="view active">
         <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Items (Milk + Bread)">
-            <input type="text" id="cost-input" placeholder="Prices (20k + 15k)">
+            <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
+            <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
             <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
-        <div id="list" style="margin-top:20px"></div>
+        <div id="daily-list" style="margin-top:20px"></div>
     </div>
 
-    <div id="view-stats" class="view">
-        <div class="stat-grid">
-            <div class="mini-card"><small>Daily Avg</small><div id="stat-avg">0₫</div></div>
-            <div class="mini-card"><small>This Month</small><div id="stat-month" style="color:var(--green)">0₫</div></div>
-        </div>
-        <h3 style="font-size:14px; color:#8b949e; margin-bottom:15px">WEEKLY HISTORY (M-S)</h3>
-        <div id="weekly-list"></div>
+    <div id="view-weekly" class="view">
+        <div id="weekly-breakdown"></div>
     </div>
 
-    <div id="view-import" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="(23/3 - 29/3)&#10;T2 : 31k (cà phê)&#10;...&#10;=> 624k"></textarea>
-        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK</button>
+    <div id="view-tools" class="view">
+        <textarea id="bulk-input" rows="10" placeholder="Paste (DD/MM - DD/MM) format here..."></textarea>
+        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
         <button class="btn-save btn-danger" onclick="clearAllData()">WIPE DATABASE</button>
     </div>
 
-    <div class="total-footer">GRAND TOTAL: <span id="stat-footer-total">0</span>₫</div>
+    <div class="total-footer">GRAND TOTAL: <span id="grand-total-val">0</span>₫</div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
@@ -79,24 +72,18 @@
 
         function getVnTime() { return new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})); }
         
-        function getMondayDate(dateStr) {
-            // dateStr is YYYY-MM-DD
-            const parts = dateStr.split('-');
-            let d = new Date(parts[0], parts[1]-1, parts[2]);
-            d.setHours(0,0,0,0);
-            let day = d.getDay();
-            let diff = d.getDate() - day + (day === 0 ? -6 : 1);
-            let mon = new Date(d.setDate(diff));
-            return `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-${String(mon.getDate()).padStart(2,'0')}`;
+        function getMondayID(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            let date = new Date(y, m - 1, d);
+            let day = date.getDay();
+            let diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            let monday = new Date(date.setDate(diff));
+            return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
         }
 
         function format(n){ return new Intl.NumberFormat('vi-VN').format(Math.round(n)); }
 
-        async function sync(){
-            document.querySelectorAll('button').forEach(b => b.disabled = true);
-            await fetch(API, {method:"POST", body:JSON.stringify(spendings)});
-            document.querySelectorAll('button').forEach(b => b.disabled = false);
-        }
+        async function sync(){ await fetch(API, {method:"POST", body:JSON.stringify(spendings)}); }
 
         async function load(){
             const res = await fetch(API);
@@ -105,62 +92,102 @@
         }
 
         function render(){
-            const vnNow = getVnTime();
-            const currentMonth = vnNow.getMonth();
-            const currentYear = vnNow.getFullYear();
+            let grandTotal = 0;
+            let weeklyBuckets = {};
 
-            let grandTotal = 0, monthlySum = 0;
-            let weeklyGroups = {}; // Key will be Monday's date string
+            const sortedDaily = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            // Generate Daily Logs
-            document.getElementById('list').innerHTML = sorted.map(s => {
-                const parts = s.date.split('-');
-                const entryDate = new Date(parts[0], parts[1]-1, parts[2]);
-                const monStr = getMondayDate(s.date);
-                
+            // Render Daily Receipts
+            document.getElementById('daily-list').innerHTML = sortedDaily.map(s => {
                 grandTotal += s.cost;
-                if(!weeklyGroups[monStr]) weeklyGroups[monStr] = 0;
-                weeklyGroups[monStr] += s.cost;
+                const mID = getMondayID(s.date);
+                weeklyBuckets[mID] = (weeklyBuckets[mID] || 0) + s.cost;
 
-                if(entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear) monthlySum += s.cost;
-
-                return `<div class="receipt"><div class="r-head">${parts[2]}/${parts[1]}/${parts[0]}</div>${s.details.map((i, idx) => `<div class="r-row"><span>${i.name}</span><span>${format(i.price)}₫</span><div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div></div>`;
-            }).join('');
-
-            // Generate Weekly Breakdown
-            const sortedWeeks = Object.keys(weeklyGroups).sort((a,b) => new Date(b) - new Date(a));
-            document.getElementById('weekly-list').innerHTML = sortedWeeks.map(mon => {
-                const m = mon.split('-');
-                let sunDate = new Date(m[0], m[1]-1, m[2]);
-                sunDate.setDate(sunDate.getDate() + 6);
-                const range = `${m[2]}/${m[1]} - ${String(sunDate.getDate()).padStart(2,'0')}/${String(sunDate.getMonth()+1).padStart(2,'0')}`;
-                
+                const [y, m, d] = s.date.split('-');
                 return `
-                <div class="week-row">
-                    <div class="week-info">
-                        <span class="week-date">Week of ${range}</span>
-                    </div>
-                    <span class="week-total">${format(weeklyGroups[mon])}₫</span>
+                <div class="receipt">
+                    <div class="r-head">${d}/${m}/${y}</div>
+                    ${s.details.map((item, idx) => `
+                        <div class="r-row">
+                            <span style="flex:1">${item.name}</span>
+                            <span style="width:80px; text-align:right">${format(item.price)}₫</span>
+                            <div class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</div>
+                        </div>
+                    `).join('')}
+                    <div class="r-total"><span>TOTAL</span><span>${format(s.cost)}₫</span></div>
                 </div>`;
             }).join('');
 
-            // Summary Stats
-            document.getElementById('stat-month').innerText = format(monthlySum) + "₫";
-            document.getElementById('stat-footer-total').innerText = format(grandTotal);
-            
-            // Calc daily avg from current week if it exists
-            const currentMon = getMondayDate(`${vnNow.getFullYear()}-${String(vnNow.getMonth()+1).padStart(2,'0')}-${String(vnNow.getDate()).padStart(2,'0')}`);
-            const currentWeekTotal = weeklyGroups[currentMon] || 0;
-            document.getElementById('stat-avg').innerText = format(currentWeekTotal / 7) + "₫";
+            // Render Weekly Tab
+            const sortedWeekKeys = Object.keys(weeklyBuckets).sort((a,b) => new Date(b) - new Date(a));
+            document.getElementById('weekly-breakdown').innerHTML = sortedWeekKeys.map(mStr => {
+                const [y, m, d] = mStr.split('-').map(Number);
+                let mon = new Date(y, m-1, d);
+                let sun = new Date(y, m-1, d + 6);
+                return `
+                <div class="week-card">
+                    <div class="week-label">WEEK: ${mon.getDate()}/${mon.getMonth()+1} - ${sun.getDate()}/${sun.getMonth()+1}</div>
+                    <div class="week-amount">${format(weeklyBuckets[mStr])}₫</div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('grand-total-val').innerText = format(grandTotal);
+        }
+
+        async function importData(){
+            const raw = document.getElementById('bulk-input').value;
+            // Split by (DD/MM) header to handle multiple weeks
+            const segments = raw.split(/\((?=\d+\/\d+)/); 
+
+            segments.forEach(segment => {
+                if(!segment.trim()) return;
+                const headerMatch = segment.match(/(\d+)\/(\d+)/);
+                if(!headerMatch) return;
+
+                const yr = 2026;
+                const startDay = parseInt(headerMatch[1]);
+                const startMonth = parseInt(headerMatch[2]);
+                const dayMap = { 'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6 };
+                
+                segment.split('\n').forEach(line => {
+                    const dayKeyMatch = line.match(/^(T\d|CN)\s*:/i);
+                    if(!dayKeyMatch) return;
+
+                    let dt = new Date(yr, startMonth - 1, startDay);
+                    dt.setDate(dt.getDate() + dayMap[dayKeyMatch[1].toUpperCase()]);
+                    const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+
+                    // Sum ALL numbers in the line
+                    const nums = line.match(/\d+[kK]?/g);
+                    if(!nums || line.includes('X')) return;
+                    
+                    const dailySum = nums.reduce((acc, n) => {
+                        let val = n.toLowerCase().replace('k', '000');
+                        return acc + parseFloat(val);
+                    }, 0);
+
+                    const nameMatch = line.match(/\(([^)]+)\)/);
+                    const itemName = nameMatch ? nameMatch[1].toUpperCase() : "CHƯA PHÂN LOẠI";
+
+                    // Overwrite date entry to ensure individual persistence
+                    spendings = spendings.filter(s => s.date !== ds);
+                    spendings.push({
+                        date: ds,
+                        cost: dailySum,
+                        details: [{ name: itemName, price: dailySum }]
+                    });
+                });
+            });
+
+            await sync(); render(); showView('weekly');
+            document.getElementById('bulk-input').value = "";
         }
 
         async function deleteLine(date, idx) {
             const entry = spendings.find(s => s.date === date);
             if (entry) {
                 entry.details.splice(idx, 1);
-                entry.cost = entry.details.reduce((sum, item) => sum + item.price, 0);
+                entry.cost = entry.details.reduce((sum, i) => sum + i.price, 0);
                 if (entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
                 await sync(); render();
             }
@@ -176,52 +203,15 @@
             });
             let entry = spendings.find(s => s.date === d);
             if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:prices[i]}));
+            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:prices[i] || 0}));
             entry.cost = entry.details.reduce((a,b) => a + b.price, 0);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
 
-        async function importData(){
-            const raw = document.getElementById('bulk-input').value;
-            const lines = raw.split('\n');
-            const header = lines.find(l => l.includes('/')) || "";
-            const dayMap = { 'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6 };
-            const mMatch = header.match(/(\d+)\/(\d+)/);
-            if(!mMatch) return;
-            
-            const yr = 2026;
-            let weekDates = [];
-            for(let i=0; i<7; i++){
-                let d = new Date(yr, mMatch[2]-1, mMatch[1]);
-                d.setDate(d.getDate() + i);
-                weekDates.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
-            }
-            spendings = spendings.filter(s => !weekDates.includes(s.date));
-            lines.forEach(line => {
-                if(line.trim().startsWith('=>')) return;
-                const dm = line.match(/^(T\d|CN)\s*:/i);
-                if(!dm) return;
-                const targetDate = weekDates[dayMap[dm[1].toUpperCase()]];
-                const regex = /([\d.k]+)\s*\(([^)]+)\)/g;
-                let match;
-                while((match = regex.exec(line)) !== null) {
-                    const p = parseFloat(match[1].replace(/k/g, '000'));
-                    const items = match[2].split(/[+/]/).map(n => n.trim());
-                    let entry = spendings.find(s => s.date === targetDate);
-                    if(!entry){ entry = {date:targetDate, cost:0, details:[]}; spendings.push(entry); }
-                    items.forEach(it => entry.details.push({name:it.toUpperCase(), price: p/items.length}));
-                    entry.cost = entry.details.reduce((a,b) => a+b.price, 0);
-                }
-            });
-            await sync(); render(); showView('stats');
-            document.getElementById('bulk-input').value = "";
-        }
-
         async function clearAllData() {
-            if (confirm("Delete everything?")) {
-                spendings = [];
-                await sync(); render();
+            if (confirm("THIS WILL WIPE EVERYTHING. Are you sure?")) {
+                spendings = []; await sync(); render();
             }
         }
 
