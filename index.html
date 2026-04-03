@@ -3,240 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HIS 2.0 - 423 Dhammapada Edition</title>
+    <title>HIS 2.0 - Total Control</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         :root {
-            --bg: #05070a; --card: #12161c; --accent: #f2cc60; 
+            --bg: #05070a; --card: #111418; --accent: #f2cc60; 
             --text: #e6edf3; --subtext: #8b949e; --border: 1px solid #30363d;
             --danger: #f85149; --success: #3fb950;
         }
-
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 90px; }
-
-        /* NAVIGATION */
-        .nav-bar { display: flex; position: sticky; top: 0; background: rgba(18, 22, 28, 0.98); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(20px); }
-        .nav-item { flex: 1; padding: 20px 0; text-align: center; font-size: 10px; font-weight: 900; cursor: pointer; color: var(--subtext); text-transform: uppercase; letter-spacing: 2px; }
-        .nav-item.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
-
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: slideUp 0.4s ease-out; }
-        .view.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* DHAMMA ENGINE - 423 VERSES */
-        .dhamma-box { 
-            background: linear-gradient(180deg, #1c2128 0%, #05070a 100%); 
-            border: 1px solid rgba(242, 204, 96, 0.4); padding: 40px 25px; 
-            border-radius: 30px; text-align: center; margin-bottom: 30px; 
-            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
-        }
-        #dhamma-num { font-size: 11px; color: var(--accent); letter-spacing: 5px; margin-bottom: 20px; font-weight: 800; }
-        #dhamma-text { font-size: 18px; line-height: 1.8; color: #fff; font-weight: 500; white-space: pre-line; margin-bottom: 25px; min-height: 120px; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
         
-        /* THE WHEEL OF EIGHTFOLD */
-        .wheel-wrap { position: relative; width: 280px; height: 280px; margin: 0 auto; }
-        #wheel-canvas { width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.1, 0, 0, 1); }
-        #wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--accent); z-index: 5; }
+        /* NAVIGATION */
+        .nav-bar { display: flex; position: sticky; top: 0; background: rgba(17, 20, 24, 0.95); backdrop-filter: blur(10px); border-bottom: var(--border); z-index: 1000; }
+        .nav-item { flex: 1; padding: 18px 0; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: var(--subtext); text-transform: uppercase; }
+        .nav-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
-        .btn-gold { width: 100%; padding: 18px; background: var(--accent); color: #000; border: none; border-radius: 15px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 5px 15px rgba(242, 204, 96, 0.2); }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
 
-        /* RECEIPTS */
-        .receipt { background: #fff; color: #000; padding: 20px; border-radius: 4px; margin-bottom: 20px; font-family: 'Courier New', monospace; position: relative; border-bottom: 5px solid #ccc; }
-        .r-line { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+        /* CHARTS SECTION */
+        .chart-card { background: var(--card); border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 15px; height: 250px; position: relative; }
+        .filter-row { display: flex; gap: 10px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .btn-filter { background: #1c2128; border: var(--border); color: var(--subtext); padding: 5px 15px; border-radius: 20px; font-size: 11px; white-space: nowrap; cursor: pointer; }
+        .btn-filter.active { background: var(--accent); color: #000; border-color: var(--accent); }
 
-        /* MODAL */
-        #modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; align-items:center; justify-content:center; z-index:10000; }
-        .modal-body { background:#1c2128; border:1px solid var(--accent); padding:40px; border-radius:25px; text-align:center; width:85%; max-width:400px; }
+        /* L.O.S.T FORM */
+        .input-group { background: var(--card); padding: 20px; border-radius: 20px; border: var(--border); margin-bottom: 20px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: var(--accent); border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        
+        /* CONFIRM POPUP */
+        #confirm-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .confirm-box { background: #1c2128; border: 1px solid var(--accent); padding: 30px; border-radius: 25px; text-align: center; width: 85%; max-width: 350px; }
 
-        .footer { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 20px; text-align: center; font-weight: 900; font-size: 20px; }
+        /* RECEIPT UI */
+        .receipt-card { background: #fff; color: #000; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; border-bottom: 4px solid #bbb; }
+        
+        /* WHEEL WIP */
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 20px auto; }
+        #wheel-canvas { width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1); }
+        #pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--accent); z-index: 10; }
+
+        .btn-gold { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+        .footer-total { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 18px; text-align: center; font-weight: 900; font-size: 20px; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
-    <div id="modal">
-        <div class="modal-body">
-            <div style="color:var(--accent); font-weight:900; margin-bottom:15px; letter-spacing:2px;">XÁC NHẬN</div>
-            <div id="modal-msg" style="font-size:15px; margin-bottom:30px; opacity:0.8;"></div>
-            <div style="display:flex; gap:15px;">
-                <button class="btn-gold" style="margin:0; background:var(--success); color:#fff;" onclick="saveFinal(true)">LƯU</button>
-                <button class="btn-gold" style="margin:0; background:var(--danger); color:#fff;" onclick="saveFinal(false)">HỦY</button>
+    <div id="confirm-overlay">
+        <div class="confirm-box">
+            <div style="color: var(--accent); font-weight: 900; margin-bottom: 10px; letter-spacing: 2px;">XÁC NHẬN CHI TIÊU?</div>
+            <div id="confirm-msg" style="font-size: 14px; margin-bottom: 25px; line-height: 1.5;"></div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="executeSave(true)" style="flex:1; background:var(--success); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:bold;">YES</button>
+                <button onclick="executeSave(false)" style="flex:1; background:var(--danger); color:#fff; border:none; padding:12px; border-radius:10px; font-weight:bold;">NO</button>
             </div>
         </div>
     </div>
 
     <div class="nav-bar">
-        <div class="nav-item active" onclick="nav('wheel')">Wheel</div>
-        <div class="nav-item" onclick="nav('lost')">L.O.S.T</div>
-        <div class="nav-item" onclick="nav('eightfold')">Eightfold</div>
-        <div class="nav-item" onclick="nav('settings')">Settings</div>
+        <div class="nav-item active" onclick="show('home')">Home</div>
+        <div class="nav-item" onclick="show('lost')">L.O.S.T</div>
+        <div class="nav-item" onclick="show('eightfold')">Eightfold</div>
+        <div class="nav-item" onclick="show('settings')">Settings</div>
     </div>
 
-    <div id="view-wheel" class="view active">
-        <div style="background:var(--card); border:var(--border); border-radius:20px; padding:20px; height:300px;">
-            <canvas id="hisChart"></canvas>
+    <div id="view-home" class="view active">
+        <div class="filter-row">
+            <button class="btn-filter active" onclick="changeChart('week')">Tuần này</button>
+            <button class="btn-filter" onclick="changeChart('month')">Tháng này</button>
+            <button class="btn-filter" onclick="changeChart('year')">Năm nay</button>
+        </div>
+        <div class="chart-card"><canvas id="spendingChart"></canvas></div>
+        
+        <div style="margin-top: 20px;">
+            <div style="font-size: 12px; color: var(--subtext); text-transform: uppercase; margin-bottom: 10px;">Tháng Filter</div>
+            <select id="month-filter" onchange="filterByMonth()">
+                <option value="all">Tất cả các tháng</option>
+                <script>
+                    for(let i=1; i<=12; i++) document.write(`<option value="${i}">Tháng ${i}</option>`);
+                </script>
+            </select>
         </div>
     </div>
 
     <div id="view-lost" class="view">
-        <div style="background:var(--card); padding:25px; border-radius:20px; border:var(--border); margin-bottom:25px;">
+        <div class="input-group">
             <input type="date" id="in-date">
-            <input type="text" id="in-name" placeholder="Hạng mục (vd: Ăn trưa)">
-            <input type="text" id="in-price" placeholder="Giá (k)">
-            <button class="btn-gold" onclick="preSave()">Lưu Hóa Đơn</button>
+            <input type="text" id="in-name" placeholder="Tên món đồ / Dịch vụ">
+            <input type="number" id="in-price" placeholder="Giá tiền (k)">
+            <textarea id="in-note" placeholder="Note (không bắt buộc)"></textarea>
+            <button class="btn-gold" onclick="triggerConfirm()">SAVE RECEIPT</button>
         </div>
-        <div id="lost-feed"></div>
+        <div id="lost-list"></div>
     </div>
 
     <div id="view-eightfold" class="view">
-        <div class="dhamma-box">
-            <div id="dhamma-num">KỆ SỐ 1</div>
-            <div id="dhamma-text">Đang tải toàn bộ 423 câu Kinh Pháp Cú...</div>
-            <button class="btn-gold" style="background:transparent; border:1px solid var(--accent); color:var(--accent); margin-top:20px;" onclick="randomDhamma()">CÂU TIẾP THEO</button>
+        <div style="background: var(--card); padding: 30px; border-radius: 20px; text-align: center; margin-bottom: 20px; border: 1px solid rgba(242, 204, 96, 0.2);">
+            <div style="font-size: 10px; color: var(--accent); font-weight: 900; margin-bottom: 10px;">--- DHAMMA ENGINE ---</div>
+            <div style="font-style: italic; color: var(--subtext);">"WORK IN PROGRESS... COMING SOON"</div>
         </div>
-
-        <div style="text-align:center;">
-            <div id="path-result" style="font-weight:900; color:var(--accent); font-size:22px; height:30px; margin-bottom:20px;">XOAY ĐỂ CHỌN CHÁNH</div>
-            <div class="wheel-wrap">
-                <div id="wheel-pointer"></div>
-                <canvas id="wheel-canvas" width="600" height="600"></canvas>
-            </div>
-            <button class="btn-gold" onclick="spinWheel()">XOAY BÁT CHÁNH ĐẠO</button>
+        
+        <div id="path-display" style="text-align: center; font-weight: 900; color: var(--accent); font-size: 22px; height: 30px; margin-bottom: 10px;">XOAY ĐỂ CHỌN CHÁNH</div>
+        <div class="wheel-container">
+            <div id="pointer"></div>
+            <canvas id="wheel-canvas" width="600" height="600"></canvas>
         </div>
+        <button class="btn-gold" onclick="spin()">SPIN THE WHEEL</button>
     </div>
 
     <div id="view-settings" class="view">
-        <button class="btn-gold" onclick="exportData()">Download Report (.txt)</button>
-        <button class="btn-gold" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="clearAll()">Reset Toàn Bộ</button>
+        <div class="input-group">
+            <div style="font-size: 12px; color: var(--subtext); margin-bottom: 10px;">XUẤT HÓA ĐƠN (IN BÁO CÁO)</div>
+            <input type="date" id="exp-start" placeholder="Từ ngày">
+            <input type="date" id="exp-end" placeholder="Đến ngày">
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button onclick="exportFile('txt')" style="flex:1; padding: 10px; background: #333; color: #fff; border:none; border-radius:8px;">TEXT</button>
+                <button onclick="exportFile('pdf')" style="flex:1; padding: 10px; background: #333; color: #fff; border:none; border-radius:8px;">PDF</button>
+            </div>
+        </div>
+
+        <button class="btn-gold" style="background:#238636; color:#fff" onclick="bulkImport()">Bulk Import (.txt)</button>
+        <button class="btn-gold" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="resetAll()">Reset All Data</button>
     </div>
 
-    <div class="footer">HIS: <span id="total-val">0k</span></div>
+    <div class="footer-total">TOTAL: <span id="grand-total">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
-        let logs = []; let chart = null; let temp = null; let angle = 0;
-
         const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
+        let logs = []; let chart = null; let tempLog = null; let wheelAngle = 0;
 
-        // 423 VERSES ENGINE (STRUCTURED DATA)
-        // M có thể dán toàn bộ 423 câu vào đây. T đã để sẵn mảng ID từ 1-423.
-        const DHAMMA_423 = [
-            { id: 1, t: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm ô nhiễm,\nKhổ não bước theo sau." },
-            { id: 2, t: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm thanh tịnh,\nAn lạc bước theo sau." },
-            { id: 3, t: "Nó mắng tôi, đánh tôi,\nNó thắng tôi, cướp tôi.\nAi ôm hiềm hận ấy,\nHận thù không thể nguôi." },
-            { id: 103, t: "Dầu tại bãi chiến trường,\nThắng hàng ngàn quân địch.\nTự thắng mình tốt nhất,\nChiến thắng ấy tối thượng." },
-            { id: 183, t: "Không làm mọi điều ác,\nThành tựu các hạnh lành.\nGiữ tâm ý trong sạch,\nLà lời chư Phật dạy." },
-            { id: 423, t: "Người biết được tiền kiếp,\nThấy thiên giới, địa ngục.\nBậc Thánh đã viên mãn,\nTa gọi Bà-la-môn." }
-            // Để nạp hết 423 câu, m chỉ cần copy text dán thêm vào mảng này. 
-            // App đã được code để random trên TOÀN BỘ mảng dù nó dài bao nhiêu.
-        ];
-
+        // INITIALIZE
         window.onload = () => {
             document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
             drawWheel();
-            randomDhamma();
             load();
         };
 
-        function drawWheel() {
-            const cvs = document.getElementById('wheel-canvas');
-            const ctx = cvs.getContext('2d');
-            const arc = Math.PI * 2 / 8;
-            for(let i=0; i<8; i++) {
-                ctx.beginPath();
-                ctx.fillStyle = i%2 ? "#1c2128" : "#21262d";
-                ctx.moveTo(300, 300);
-                ctx.arc(300, 300, 280, i*arc, (i+1)*arc);
-                ctx.fill();
-                ctx.save();
-                ctx.translate(300, 300); ctx.rotate(i*arc + arc/2);
-                ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
-                ctx.font = "bold 28px sans-serif";
-                ctx.fillText(PATHS[i], 130, 10);
-                ctx.restore();
-            }
-        }
-
-        function spinWheel() {
-            const spin = Math.floor(Math.random() * 360) + 3600;
-            angle += spin;
-            document.getElementById('wheel-canvas').style.transform = `rotate(-${angle}deg)`;
-            setTimeout(() => {
-                const idx = Math.floor(((angle % 360) / 360) * 8);
-                document.getElementById('path-result').innerText = PATHS[idx].toUpperCase();
-            }, 5000);
-        }
-
-        function randomDhamma() {
-            const q = DHAMMA_423[Math.floor(Math.random() * DHAMMA_423.length)];
-            document.getElementById('dhamma-num').innerText = "KỆ SỐ " + q.id;
-            document.getElementById('dhamma-text').innerText = q.t;
-        }
-
-        // FINANCE
         async function load() {
-            const r = await fetch(API);
-            const d = await r.json() || [];
-            logs = d.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(i => ({ ...i, price: BigInt(i.price) })) }));
-            refresh();
+            try {
+                const res = await fetch(API);
+                const data = await res.json() || [];
+                logs = data.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(d => ({ ...d, price: BigInt(d.price) })) }));
+                render();
+            } catch(e) { console.log("Load error"); }
         }
 
-        function refresh() {
-            const feed = document.getElementById('lost-feed');
-            const sorted = [...logs].sort((a,b) => b.date.localeCompare(a.date));
-            feed.innerHTML = sorted.map(s => `
-                <div class="receipt">
-                    <div style="text-align:center; font-weight:bold; border-bottom:1px solid #000; margin-bottom:10px;">${s.date}</div>
-                    ${s.details.map((d, i) => `<div class="r-line"><span>${d.name}</span><b>${Number(d.price)/1000}k <span style="color:red" onclick="del('${s.date}',${i})">×</span></b></div>`).join('')}
-                    <div style="text-align:right; font-weight:bold; margin-top:10px;">TOTAL: ${Number(s.cost)/1000}k</div>
-                </div>
-            `).join('');
-            updateChart();
-            const grand = logs.reduce((a, b) => a + b.cost, 0n);
-            document.getElementById('total-val').innerText = (Number(grand)/1000).toLocaleString() + "k";
+        function render() {
+            renderLOST();
+            updateChart('week');
+            const total = logs.reduce((a, b) => a + b.cost, 0n);
+            document.getElementById('grand-total').innerText = (Number(total)/1000).toLocaleString() + "k";
         }
 
-        function preSave() {
+        // CHART LOGIC (Week/Month/Year)
+        function updateChart(mode) {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            if(chart) chart.destroy();
+
+            let filteredLogs = [...logs].sort((a,b) => a.date.localeCompare(b.date));
+            let labels = [], values = [];
+
+            if(mode === 'week') {
+                // Lấy 7 ngày gần nhất
+                const last7 = filteredLogs.slice(-7);
+                labels = last7.map(x => x.date.split('-')[2]);
+                values = last7.map(x => Number(x.cost)/1000);
+            } else if(mode === 'month') {
+                // Group theo ngày trong tháng hiện tại
+                const now = new Date();
+                const currentMonth = now.toISOString().slice(0, 7);
+                const thisMonth = filteredLogs.filter(x => x.date.startsWith(currentMonth));
+                labels = thisMonth.map(x => x.date.split('-')[2]);
+                values = thisMonth.map(x => Number(x.cost)/1000);
+            } else {
+                // Group theo tháng trong năm
+                labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                values = new Array(12).fill(0);
+                filteredLogs.forEach(log => {
+                    const m = parseInt(log.date.split('-')[1]) - 1;
+                    values[m] += Number(log.cost)/1000;
+                });
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { 
+                    labels, 
+                    datasets: [{ 
+                        label: 'k', data: values, borderColor: '#f2cc60', 
+                        backgroundColor: 'rgba(242,204,96,0.1)', fill: true, tension: 0.4 
+                    }] 
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function changeChart(m) {
+            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            updateChart(m);
+        }
+
+        // L.O.S.T LOGIC
+        function triggerConfirm() {
             const n = document.getElementById('in-name').value;
             const p = document.getElementById('in-price').value;
             if(!n || !p) return;
-            temp = { date: document.getElementById('in-date').value, name: n.toUpperCase(), price: BigInt(p.replace('k','')) * 1000n };
-            document.getElementById('modal-msg').innerText = `Xác nhận chi ${p}k cho ${n}?`;
-            document.getElementById('modal').style.display = 'flex';
+            tempLog = { date: document.getElementById('in-date').value, name: n.toUpperCase(), price: BigInt(p) * 1000n, note: document.getElementById('in-note').value };
+            document.getElementById('confirm-msg').innerText = `Bạn chuẩn bị tiêu ${p}k cho "${n}".\nĐây có phải là nhu cầu thiết yếu không?`;
+            document.getElementById('confirm-overlay').style.display = 'flex';
         }
 
-        async function saveFinal(yes) {
-            document.getElementById('modal').style.display = 'none';
-            if(yes && temp) {
-                let s = logs.find(x => x.date === temp.date);
-                if(!s) { s = {date: temp.date, cost: 0n, details: []}; logs.push(s); }
-                s.details.push({name: temp.name, price: temp.price});
+        async function executeSave(yes) {
+            document.getElementById('confirm-overlay').style.display = 'none';
+            if(yes && tempLog) {
+                let s = logs.find(x => x.date === tempLog.date);
+                if(!s) { s = { date: tempLog.date, cost: 0n, details: [] }; logs.push(s); }
+                s.details.push({ name: tempLog.name, price: tempLog.price, note: tempLog.note });
                 s.cost = s.details.reduce((a,b) => a+b.price, 0n);
                 await sync(); load();
                 document.getElementById('in-name').value = ""; document.getElementById('in-price').value = "";
             }
         }
 
+        function renderLOST() {
+            const list = document.getElementById('lost-list');
+            const sorted = [...logs].sort((a,b) => b.date.localeCompare(a.date));
+            list.innerHTML = sorted.map(s => `
+                <div class="receipt-card">
+                    <div style="text-align:center;border-bottom:1px dashed #000;padding-bottom:5px;margin-bottom:10px;font-weight:bold">${s.date}</div>
+                    ${s.details.map((d, i) => `
+                        <div style="display:flex;justify-content:space-between;margin:5px 0">
+                            <span>${d.name} ${d.note ? `<small style="color:gray">(${d.note})</small>` : ''}</span>
+                            <b>${Number(d.price)/1000}k <span style="color:red;cursor:pointer" onclick="del('${s.date}',${i})">×</span></b>
+                        </div>
+                    `).join('')}
+                    <div style="text-align:right;border-top:1px solid #000;margin-top:10px;padding-top:5px;font-weight:bold">TOTAL: ${Number(s.cost)/1000}k</div>
+                </div>
+            `).join('');
+        }
+
+        // WHEEL LOGIC
+        function drawWheel() {
+            const ctx = document.getElementById('wheel-canvas').getContext('2d');
+            const arc = Math.PI * 2 / 8;
+            for(let i=0; i<8; i++) {
+                ctx.beginPath(); ctx.fillStyle = i%2 ? "#1c2128" : "#21262d";
+                ctx.moveTo(300, 300); ctx.arc(300, 300, 280, i*arc, (i+1)*arc); ctx.fill();
+                ctx.save(); ctx.translate(300, 300); ctx.rotate(i*arc + arc/2);
+                ctx.textAlign = "right"; ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
+                ctx.font = "bold 28px sans-serif";
+                const words = PATHS[i].split(' ');
+                if(words.length > 1) { ctx.fillText(words[0], 250, -5); ctx.fillText(words[1], 250, 30); }
+                else { ctx.fillText(PATHS[i], 250, 15); }
+                ctx.restore();
+            }
+        }
+
+        function spin() {
+            wheelAngle += Math.floor(Math.random() * 360) + 3600;
+            document.getElementById('wheel-canvas').style.transform = `rotate(-${wheelAngle}deg)`;
+            setTimeout(() => {
+                const idx = Math.floor(((wheelAngle % 360) / 360) * 8);
+                document.getElementById('path-display').innerText = PATHS[idx].toUpperCase();
+            }, 5000);
+        }
+
+        // SETTINGS: EXPORT & SYNC
         async function sync() {
             const out = logs.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
             await fetch(API, {method: "POST", body: JSON.stringify(out)});
         }
 
-        function updateChart() {
-            const ctx = document.getElementById('hisChart').getContext('2d');
-            const last7 = logs.slice(-7);
-            if(chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: last7.map(x=>x.date.split('-')[2]), datasets: [{ label: 'k', data: last7.map(x=>Number(x.cost)/1000), borderColor: '#f2cc60', fill: true, backgroundColor: 'rgba(242,204,96,0.1)', tension: 0.4 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
-        }
+        function exportFile(type) {
+            const start = document.getElementById('exp-start').value;
+            const end = document.getElementById('exp-end').value;
+            if(!start || !end) return alert("Chọn khoảng ngày!");
 
-        function nav(v) {
-            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-            document.getElementById('view-'+v).classList.add('active');
-            event.currentTarget.classList.add('active');
+            const filtered = logs.filter(l => l.date >= start && l.date <= end);
+            let content = `HIS REPORT (${start} to ${end})\n\n`;
+            filtered.forEach(l => {
+                content += `${l.date} - Total: ${Number(l.cost)/1000}k\n`;
+                l.details.forEach(d => content += ` > ${d.name}: ${Number(d.price)/1000}k\n`);
+                content += `-------------------\n`;
+            });
+
+            if(type === 'txt') {
+                const b = new Blob([content], {type: "text/plain"});
+                const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = `HIS_${start}.txt`; a.click();
+            } else {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.text(content, 10, 10);
+                doc.save(`HIS_${start}.pdf`);
+            }
         }
 
         async function del(d, i) {
@@ -244,13 +308,14 @@
             if(!e.details.length) logs=logs.filter(x=>x.date!==d); await sync(); load();
         }
 
-        function exportData() {
-            let t = "HIS REPORT\n" + logs.map(s => `${s.date}: ${Number(s.cost)/1000}k`).join('\n');
-            const b = new Blob([t], {type:"text/plain"});
-            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download="HIS_Report.txt"; a.click();
+        function show(v) {
+            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+            document.getElementById('view-'+v).classList.add('active');
+            event.currentTarget.classList.add('active');
         }
 
-        async function clearAll() { if(confirm("Xóa hết?")) { logs=[]; await sync(); load(); } }
+        async function resetAll() { if(confirm("Xóa sạch dữ liệu?")) { logs=[]; await sync(); load(); } }
     </script>
 </body>
 </html>
