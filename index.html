@@ -3,393 +3,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.9.2 - The Neutralizer</title>
+    <title>HIS Beta 2.0 - How I Spend</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style id="theme-style">
-        :root { 
-            --bg: #0d1117; --card: rgba(13, 17, 23, 0.8); --accent: #58a6ff; 
-            --green: #3fb950; --gold: #f2cc60; --danger: #f85149;
-            --text: #e6edf3; --font: -apple-system, sans-serif;
-            --border: 1px solid rgba(255,255,255,0.1); --glow: none; --fx: none;
-            --receipt-bg: #fff; --receipt-text: #111; --bg-img: none;
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --bg: #0d1117; --card: rgba(22, 27, 34, 0.9); --accent: #f2cc60; 
+            --text: #e6edf3; --subtext: #8b949e; --border: 1px solid #30363d;
+            --font: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            --danger: #f85149; --success: #3fb950;
         }
-
-        /* SPLASH SCREEN */
-        #splash-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0d1117; z-index: 10000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.8s ease, visibility 0.8s;
-        }
-        .splash-logo {
-            width: 80px; height: 80px; border: 4px solid var(--accent);
-            border-radius: 20%; position: relative; animation: pulse 2s infinite ease-in-out;
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 900; font-size: 32px; color: var(--accent);
-        }
-        .splash-bar {
-            width: 150px; height: 2px; background: rgba(255,255,255,0.1);
-            margin-top: 30px; position: relative; overflow: hidden;
-        }
-        .splash-progress {
-            width: 0%; height: 100%; background: var(--accent);
-            position: absolute; left: 0; top: 0; animation: load 2s forwards cubic-bezier(0.42, 0, 0.58, 1);
-        }
-        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
-        @keyframes load { 0% { width: 0%; } 100% { width: 100%; } }
-        .hide-splash { opacity: 0; visibility: hidden; }
 
         body { 
-            background: var(--bg); background-image: var(--bg-img);
-            background-size: cover; background-position: center; background-attachment: fixed;
-            color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; 
-            transition: 0.8s ease; overflow-x: hidden; 
-        }
-        
-        #scanlines { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; z-index: 9999; opacity: 0.15; display: var(--fx);
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), 
-                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
-            background-size: 100% 3px, 3px 100%;
+            background: var(--bg); color: var(--text); font-family: var(--font); 
+            margin: 0; padding-bottom: 80px; overflow-x: hidden;
         }
 
-        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--card); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(15px); }
-        .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
-        .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-        
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--filter, none); }
+        /* NAVIGATION */
+        .nav-bar {
+            display: flex; position: sticky; top: 0; background: var(--card);
+            border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(10px);
+        }
+        .nav-item {
+            flex: 1; padding: 15px 0; text-align: center; font-size: 11px;
+            font-weight: bold; cursor: pointer; color: var(--subtext); text-transform: uppercase;
+        }
+        .nav-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        .view { display: none; padding: 20px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.4s; }
         .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        .receipt { 
-            background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; 
-            margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow, 0 10px 30px rgba(0,0,0,0.5)); 
-            border: var(--border); transform: var(--receipt-tilt, none); transition: 0.4s;
-        }
-        .r-head { border-bottom: 1px dashed rgba(0,0,0,0.2); text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
-        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
-        .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
-        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 12px; }
+        /* WHEEL OF SPENDING (GRAPHS) */
+        .chart-box { background: var(--card); border: var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
+        .chart-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+        .btn-sm { flex: 1; padding: 8px; font-size: 10px; background: #21262d; border: var(--border); color: var(--text); border-radius: 6px; cursor: pointer; }
+        .btn-sm.active { background: var(--accent); color: #000; }
 
-        .input-group { background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 15px; backdrop-filter: blur(12px); }
-        input, textarea, select { width: 100%; padding: 12px; margin: 6px 0; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--accent); border-radius: 8px; box-sizing: border-box; outline: none; }
-        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 6px; text-transform: uppercase; }
+        /* L.O.S.T (LOGS) */
+        .input-group { background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 20px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; }
+        .btn-main { width: 100%; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
-        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 5px 20px rgba(0,0,0,0.6); }
-        #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(30px); border-left: var(--border); z-index: 2001; transition: 0.5s; padding: 25px; box-sizing: border-box; }
-        #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 85px; background: #000; color: var(--green); text-align: right; font-size: 34px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; border: 1px solid #333; }
+        .receipt { background: #fff; color: #000; padding: 15px; border-radius: 4px; margin-bottom: 12px; font-family: monospace; position: relative; }
+        .receipt-header { border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; font-weight: bold; text-align: center; }
 
-        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(10px); }
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        /* EIGHTFOLD (DHAMMA) */
+        .dhamma-card { background: linear-gradient(145deg, #1c2128, #0d1117); border: 1px solid var(--accent); padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 20px; position: relative; }
+        .dhamma-quote { font-style: italic; font-size: 16px; line-height: 1.6; color: var(--accent); margin-bottom: 15px; }
+        .dhamma-ref { font-size: 12px; color: var(--subtext); }
         
-        .weekly-row { display: flex; justify-content: space-between; margin-top: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: monospace; font-size: 13px; }
+        .eightfold-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
+        .path-item { background: #21262d; padding: 15px; border-radius: 10px; text-align: center; font-size: 12px; border: var(--border); cursor: pointer; transition: 0.3s; }
+        .path-item:active { background: var(--accent); color: #000; }
+
+        /* CONFIRM POPUP */
+        #confirm-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; 
+        }
+        .confirm-box { background: var(--card); border: 1px solid var(--accent); padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 300px; }
+        .confirm-btns { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-yes { flex: 1; background: var(--success); color: #fff; padding: 10px; border-radius: 5px; border: none; font-weight: bold; }
+        .btn-no { flex: 1; background: var(--danger); color: #fff; padding: 10px; border-radius: 5px; border: none; font-weight: bold; }
+
+        /* FOOTER STATS */
+        .footer-total { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 15px; text-align: center; font-weight: 900; letter-spacing: 1px; }
     </style>
 </head>
 <body>
 
-    <div id="splash-screen">
-        <div class="splash-logo">$</div>
-        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">SPENDLOG 12.9</div>
-        <div class="splash-bar"><div class="splash-progress"></div></div>
+    <div id="confirm-overlay">
+        <div class="confirm-box">
+            <div style="font-size: 14px; margin-bottom: 10px;">XÁC NHẬN CHI TIÊU?</div>
+            <div id="confirm-detail" style="font-size: 12px; color: var(--subtext);"></div>
+            <div class="confirm-btns">
+                <button class="btn-yes" onclick="confirmSave(true)">ĐÚNG (YES)</button>
+                <button class="btn-no" onclick="confirmSave(false)">HỦY (NO)</button>
+            </div>
+        </div>
     </div>
 
-    <div id="scanlines"></div>
-
-    <div class="nav-tabs">
-        <div class="nav-tab active" onclick="showView('daily')">Logs</div>
-        <div class="nav-tab" onclick="showView('analytics')">Graphs</div>
-        <div class="nav-tab" onclick="showView('bills')">Bills</div>
-        <div class="nav-tab" onclick="showView('tools')">Settings</div>
+    <div class="nav-bar">
+        <div class="nav-item active" onclick="showView('home')">Wheel</div>
+        <div class="nav-item" onclick="showView('lost')">L.O.S.T</div>
+        <div class="nav-item" onclick="showView('eightfold')">Eightfold</div>
+        <div class="nav-item" onclick="showView('settings')">Settings</div>
     </div>
 
-    <div id="view-daily" class="view active">
+    <div id="view-home" class="view active">
+        <h3 style="color: var(--accent); margin-top: 0;">Wheel of Spending</h3>
+        <div class="chart-box">
+            <div class="chart-controls">
+                <button class="btn-sm active" id="btn-week" onclick="changeChart('week')">Tuần</button>
+                <button class="btn-sm" id="btn-month" onclick="changeChart('month')">Tháng</button>
+                <button class="btn-sm" id="btn-year" onclick="changeChart('year')">Năm</button>
+            </div>
+            <div style="height: 250px;"><canvas id="mainChart"></canvas></div>
+        </div>
+        <div id="home-weekly-summary"></div>
+    </div>
+
+    <div id="view-lost" class="view">
         <div class="input-group">
-            <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Name (Gas + Coffee)">
-            <input type="text" id="cost-input" placeholder="Price (50k + 25k)">
-            <input type="text" id="note-input" placeholder="Note (Optional)">
-            <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
+            <input type="date" id="lost-date">
+            <input type="text" id="lost-name" placeholder="Tên khoản chi (vd: Ăn sáng)">
+            <input type="text" id="lost-price" placeholder="Giá tiền (vd: 50k hoặc 50000)">
+            <textarea id="lost-note" placeholder="Ghi chú (Note)"></textarea>
+            <button class="btn-main" onclick="triggerConfirm()">Save Receipt</button>
         </div>
-        <div id="daily-list"></div>
+        <div id="lost-list"></div>
     </div>
 
-    <div id="view-analytics" class="view">
-        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
-            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">RECENT</button>
-            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
-            <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 42px;">
-                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
-                <option value="3" selected>Apr</option><option value="4">May</option><option value="5">Jun</option>
-                <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
-                <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
-            </select>
+    <div id="view-eightfold" class="view">
+        <div class="dhamma-card">
+            <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-bottom: 10px;">DAILY DHAMMAPADA</div>
+            <div class="dhamma-quote" id="quote-text">"Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo..."</div>
+            <div class="dhamma-ref" id="quote-ref">Kệ số 1</div>
+            <button class="btn-sm" style="margin-top: 15px; width: auto; padding: 8px 20px;" onclick="getRandomQuote()">Another Quote</button>
         </div>
-        <div class="chart-container"><canvas id="spendingChart"></canvas></div>
-        <div id="stats-summary" style="background: var(--card); padding: 15px; border-radius: 12px; border: var(--border); font-size: 13px;"></div>
+
+        <h4 style="text-align: center; color: var(--subtext); text-transform: uppercase; font-size: 12px;">Bát Chánh Đạo (The Eightfold Path)</h4>
+        <div class="eightfold-grid">
+            <div class="path-item" onclick="alert('Chánh Kiến: Hiểu biết đúng đắn về sự thật.')">Chánh Kiến</div>
+            <div class="path-item" onclick="alert('Chánh Tư Duy: Suy nghĩ không tham, không sân, không hại.')">Chánh Tư Duy</div>
+            <div class="path-item" onclick="alert('Chánh Ngữ: Lời nói chân thật, không thêu dệt.')">Chánh Ngữ</div>
+            <div class="path-item" onclick="alert('Chánh Nghiệp: Hành động thiện lành, không sát sinh.')">Chánh Nghiệp</div>
+            <div class="path-item" onclick="alert('Chánh Mạng: Nghề nghiệp chân chính, không hại người.')">Chánh Mạng</div>
+            <div class="path-item" onclick="alert('Chánh Tinh Tấn: Nỗ lực rèn luyện tâm tính.')">Chánh Tinh Tấn</div>
+            <div class="path-item" onclick="alert('Chánh Niệm: Luôn tỉnh giác trong hiện tại.')">Chánh Niệm</div>
+            <div class="path-item" onclick="alert('Chánh Định: Tâm tập trung, không xao lãng.')">Chánh Định</div>
+        </div>
     </div>
 
-    <div id="view-bills" class="view">
+    <div id="view-settings" class="view">
         <div class="input-group">
-            <input type="text" id="bill-name" placeholder="Bill Name">
-            <input type="text" id="bill-amount" placeholder="Amount (e.g. 1.5M)">
-            <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD FIXED BILL</button>
+            <h4 style="margin-top:0">Export Data</h4>
+            <div style="display: flex; gap: 5px;">
+                <input type="date" id="export-start" style="flex:1">
+                <input type="date" id="export-end" style="flex:1">
+            </div>
+            <button class="btn-sm" style="width:100%; margin-bottom: 5px;" onclick="exportToText()">Export as Text</button>
+            <button class="btn-sm" style="width:100%;" onclick="alert('Tính năng PDF/Image yêu cầu thư viện mở rộng, đang giả lập...')">Export as Image</button>
         </div>
-        <div id="bill-list"></div>
-    </div>
 
-    <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Theme</label>
-            <select onchange="applyAtmosphere(this.value)" style="margin-top:10px">
-                <option value="default">Default Matrix</option>
-                <option value="retro">80s Retro</option>
-                <option value="cyber">Cyberpunk</option>
-                <option value="steam">Steampunk</option>
-                <option value="horror">Uncanny</option>
-            </select>
+            <h4>Bulk Import</h4>
+            <textarea id="bulk-data" rows="5" placeholder="Dán dữ liệu báo cáo vào đây..."></textarea>
+            <button class="btn-main" style="background: var(--success); color: #fff;" onclick="bulkImport()">Import Now</button>
         </div>
-        <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="8" placeholder="Cách để Sync Bulk (Dùng ChatGPT hoặc Gemini để +2 cho ngày khoảng) VD : (5/1 - 11/1) sẽ phải thành (7/1 - 13/1) , với prompt là [see the numbers in brackets , plus 2 on the number on the left side EX : (5/1 - 11/1) to (7/1 - 13/1) ]" style="margin-top:12px; font-size: 11px;"></textarea>
-        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
+
+        <button class="btn-main" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);" onclick="resetData()">Reset All Data</button>
     </div>
 
-    <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
-    <div id="calc-panel">
-        <div class="calc-screen" id="calc-display">0</div>
-        <div class="calc-grid">
-            <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
-            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
-            <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
-            <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
-        </div>
-        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
-    </div>
-
-    <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
+    <div class="footer-total">HIS TOTAL: <span id="grand-total">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-        let bills = JSON.parse(localStorage.getItem('spendlog_bills')) || [];
         let myChart = null;
+        let pendingEntry = null;
 
-        window.addEventListener('load', () => { setTimeout(() => { document.getElementById('splash-screen').classList.add('hide-splash'); }, 2200); });
+        // Dữ liệu mẫu Pháp Cú (Trong thực tế sẽ fetch từ kinhphapcu.vn hoặc nạp full bộ)
+        const dhammaQuotes = [
+            { text: "Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo. Nếu với tâm ô nhiễm, Nói năng hay hành động, Khổ não bước theo sau, Như xe chân vật kéo.", ref: "Pháp Cú - Kệ số 1" },
+            { text: "Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo. Nếu với tâm thanh tịnh, Nói năng hay hành động, An lạc bước theo sau, Như bóng chẳng rời hình.", ref: "Pháp Cú - Kệ số 2" },
+            { text: "Sống trong tài sản lớn, Không biết đủ, tham cầu, Chính tham làm hại mình, Như mọt ăn gỗ mục.", ref: "Pháp Cú - Tinh thần tiết độ" },
+            { text: "Ít muốn và biết đủ, Là tài sản lớn nhất. Tự tin là bạn tốt, Niết bàn lạc tối thượng.", ref: "Pháp Cú - Kệ số 204" }
+        ];
 
-        function formatK(n) { let val = Math.floor(Number(n)/1000); return val === 0 ? "0k" : new Intl.NumberFormat('en-US').format(val) + "k"; }
-        function toBigInt(val) { if (!val) return 0n; let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, ''); return BigInt(clean || 0); }
+        window.onload = () => {
+            document.getElementById('lost-date').value = new Date().toISOString().split('T')[0];
+            getRandomQuote();
+            loadData();
+        };
 
-        async function sync() {
-            const storageData = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
-            await fetch(API, {method:"POST", body:JSON.stringify(storageData)});
-            localStorage.setItem('spendlog_bills', JSON.stringify(bills));
-        }
-
-        async function load() {
+        async function loadData() {
             try {
                 const res = await fetch(API);
                 const data = await res.json() || [];
-                spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" })) }));
+                spendings = data.map(s => ({ 
+                    ...s, 
+                    cost: BigInt(s.cost || 0), 
+                    details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) 
+                }));
                 render();
             } catch(e) { console.error("Load failed", e); }
         }
 
         function render() {
-            let grandTotal = 0n;
+            renderLOST();
+            updateChart('week');
+            updateGrandTotal();
+        }
+
+        function updateGrandTotal() {
+            const total = spendings.reduce((acc, s) => acc + s.cost, 0n);
+            document.getElementById('grand-total').innerText = formatK(total);
+        }
+
+        function formatK(n) {
+            let val = Math.floor(Number(n)/1000);
+            return val.toLocaleString() + "k";
+        }
+
+        function toBigInt(val) {
+            let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
+            return BigInt(clean || 0);
+        }
+
+        // L.O.S.T FUNCTIONS
+        function triggerConfirm() {
+            const name = document.getElementById('lost-name').value;
+            const price = document.getElementById('lost-price').value;
+            if(!name || !price) return alert("Vui lòng nhập đủ thông tin!");
+            
+            pendingEntry = {
+                date: document.getElementById('lost-date').value,
+                name: name.toUpperCase(),
+                price: toBigInt(price),
+                note: document.getElementById('lost-note').value
+            };
+            
+            document.getElementById('confirm-detail').innerText = `${pendingEntry.name}: ${formatK(pendingEntry.price)}`;
+            document.getElementById('confirm-overlay').style.display = 'flex';
+        }
+
+        async function confirmSave(yes) {
+            document.getElementById('confirm-overlay').style.display = 'none';
+            if(yes && pendingEntry) {
+                let entry = spendings.find(s => s.date === pendingEntry.date);
+                if(!entry) {
+                    entry = { date: pendingEntry.date, cost: 0n, details: [] };
+                    spendings.push(entry);
+                }
+                entry.details.push({ name: pendingEntry.name, price: pendingEntry.price, note: pendingEntry.note });
+                entry.cost = entry.details.reduce((a, b) => a + b.price, 0n);
+                
+                await sync();
+                render();
+                document.getElementById('lost-name').value = "";
+                document.getElementById('lost-price').value = "";
+                document.getElementById('lost-note').value = "";
+            }
+            pendingEntry = null;
+        }
+
+        function renderLOST() {
             const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
-            document.getElementById('daily-list').innerHTML = sorted.map(s => {
-                grandTotal += s.cost;
-                const dateObj = new Date(s.date + "T00:00:00");
-                const dayName = dateObj.toLocaleDateString('en-US', {weekday:'short'});
-                const [y, m, d] = s.date.split('-');
-                return `<div class="receipt">
-                    <div class="r-head">${dayName} ${d}/${m}/${y}</div>
-                    ${s.details.map((item, idx) => `
-                        <div class="r-row">
-                            <div><b>${item.name}</b></div>
-                            <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
+            document.getElementById('lost-list').innerHTML = sorted.map(s => `
+                <div class="receipt">
+                    <div class="receipt-header">${s.date.split('-').reverse().join('/')}</div>
+                    ${s.details.map((d, i) => `
+                        <div style="display:flex; justify-content:space-between; margin:4px 0;">
+                            <span>${d.name} ${d.note ? `<small style="color:gray">(${d.note})</small>` : ''}</span>
+                            <b>${formatK(d.price)} <span style="color:red; cursor:pointer" onclick="deleteItem('${s.date}', ${i})">×</span></b>
                         </div>
                     `).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
-                </div>`;
-            }).join('');
-            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:12px">×</span></b></div></div>`).join('');
-            document.getElementById('grand-total-val').innerText = formatK(grandTotal);
-            updateChart('14d');
+                    <div style="border-top:1px solid #000; margin-top:5px; text-align:right; font-weight:bold;">
+                        TOTAL: ${formatK(s.cost)}
+                    </div>
+                </div>
+            `).join('');
         }
 
-        function renderWeeklySummary() {
-            const summaryDiv = document.getElementById('stats-summary');
-            if (spendings.length === 0) return;
+        // CHART LOGIC
+        function updateChart(mode) {
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            let labels = [], data = [];
+            const sorted = [...spendings].sort((a,b) => a.date.localeCompare(b.date));
 
-            const sorted = [...spendings].sort((a, b) => a.date.localeCompare(b.date));
-            const weeks = {};
-            
-            sorted.forEach(s => {
-                const d = new Date(s.date + "T00:00:00");
-                const day = d.getDay(); 
-                const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
-                const monday = new Date(d.setDate(diff));
-                const weekKey = monday.toISOString().split('T')[0];
-                
-                if (!weeks[weekKey]) weeks[weekKey] = 0n;
-                weeks[weekKey] += s.cost;
-            });
-
-            let html = `<div style="margin-top:15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                        <b style="font-size:11px; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Weekly Summary (Mon-Sun)</b>`;
-            
-            Object.keys(weeks).sort().reverse().forEach(wk => {
-                const start = new Date(wk + "T00:00:00");
-                const end = new Date(wk + "T00:00:00");
-                end.setDate(start.getDate() + 6);
-                const range = `${start.getDate()}/${start.getMonth()+1} - ${end.getDate()}/${end.getMonth()+1}`;
-                html += `
-                    <div class="weekly-row">
-                        <span style="color:#8b949e">${range}</span>
-                        <b style="color:var(--gold)">${formatK(weeks[wk])}</b>
-                    </div>`;
-            });
-            html += `</div>`;
-            summaryDiv.innerHTML += html;
-        }
-
-        async function importData() {
-            let rawInput = document.getElementById('bulk-input').value;
-            if (!rawInput) return alert("Please paste data first!");
-            
-            const lines = rawInput.split('\n');
-            let count = 0;
-            let anchorISO = null;
-            const vnDays = { "T2": 0, "T3": 1, "T4": 2, "T5": 3, "T6": 4, "T7": 5, "CN": 6 };
-
-            lines.forEach(line => {
-                line = line.trim();
-                
-                // THE NEUTRALIZER: Convert any input Monday date back by 1 day
-                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
-                if (weekMatch) {
-                    let d = parseInt(weekMatch[1]);
-                    let m = parseInt(weekMatch[2]);
-                    
-                    // Logic: Turn input (5/1) into (4/1) or (23/3) into (22/3)
-                    let baseDate = new Date(2026, m - 1, d);
-                    baseDate.setDate(baseDate.getDate() - 1);
-                    
-                    const finalD = String(baseDate.getDate()).padStart(2, '0');
-                    const finalM = String(baseDate.getMonth() + 1).padStart(2, '0');
-                    anchorISO = `2026-${finalM}-${finalD}`; 
-                    return;
-                }
-
-                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
-                if (dayMatch && anchorISO) {
-                    const content = dayMatch[2].trim();
-                    if (content.toUpperCase() === 'X' || !content) return;
-
-                    const dateObj = new Date(anchorISO + "T00:00:00");
-                    dateObj.setDate(dateObj.getDate() + vnDays[dayMatch[1].toUpperCase()]);
-                    const isoDate = dateObj.toISOString().split('T')[0];
-
-                    const parts = content.split('+');
-                    parts.forEach(part => {
-                        const priceMatch = part.match(/(\d+k|\d+)/i);
-                        const noteMatch = part.match(/\((.+?)\)/);
-                        
-                        if (priceMatch) {
-                            const price = toBigInt(priceMatch[1]);
-                            const noteStr = noteMatch ? noteMatch[1].trim() : "";
-                            let displayName = noteStr ? noteStr.toUpperCase() : "EXPENSE";
-
-                            let entry = spendings.find(s => s.date === isoDate);
-                            if (!entry) { 
-                                entry = { date: isoDate, cost: 0n, details: [] }; 
-                                spendings.push(entry); 
-                            }
-                            
-                            entry.details.push({ name: displayName, price, note: "" });
-                            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
-                            count++;
-                        }
-                    });
-                }
-            });
-            if (count > 0) { await sync(); render(); alert(`Neutralized and synced ${count} items.`); }
-        }
-
-        function updateChart(range = '14d') {
-            const ctx = document.getElementById('spendingChart').getContext('2d');
-            const allSorted = [...spendings].sort((a, b) => a.date.localeCompare(b.date));
-            let labels = [], data = [], labelText = "";
-            if (range === '14d') {
-                const slice = allSorted.slice(-14);
-                labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
-                data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "Daily Spending";
-            } else if (range === 'month') {
-                const selectedMonth = parseInt(document.getElementById('month-picker').value);
-                const filtered = allSorted.filter(s => { const d = new Date(s.date + "T00:00:00"); return d.getMonth() === selectedMonth; });
-                const daysInMonth = new Date(2026, selectedMonth + 1, 0).getDate();
-                labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
-                data = new Array(daysInMonth).fill(0);
-                filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
-                labelText = "Monthly View";
-            } else if (range === 'year') {
+            if(mode === 'week') {
+                // Lấy 7 ngày gần nhất hoặc tuần hiện tại
+                const last7 = sorted.slice(-7);
+                labels = last7.map(s => s.date.split('-')[2]);
+                data = last7.map(s => Number(s.cost)/1000);
+            } else if(mode === 'month') {
+                // Gom nhóm theo tháng
+                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                labels = months;
                 data = new Array(12).fill(0);
-                allSorted.forEach(s => { if (new Date(s.date + "T00:00:00").getFullYear() === 2026) data[new Date(s.date + "T00:00:00").getMonth()] += Number(s.cost) / 1000; });
-                labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Yearly Trend";
+                sorted.forEach(s => {
+                    const m = new Date(s.date).getMonth();
+                    data[m] += Number(s.cost)/1000;
+                });
             }
-            if (myChart) myChart.destroy();
+
+            if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ label: labelText, data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)', pointRadius: 2 }]},
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Spending (k)',
+                        data,
+                        borderColor: '#f2cc60',
+                        backgroundColor: 'rgba(242, 204, 96, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-            const sum = data.reduce((a, b) => a + b, 0);
-            document.getElementById('stats-summary').innerHTML = `Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b>`;
-            renderWeeklySummary();
         }
 
-        function applyAtmosphere(t) {
-            const r = document.documentElement.style;
-            const fx = document.getElementById('scanlines');
-            fx.style.setProperty('--fx', t==='retro'?'block':'none');
-            r.setProperty('--font','sans-serif'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--card','rgba(13, 17, 23, 0.8)');
-            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--border','2px solid #ff00ff'); }
-            if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.85)'); }
-            if(t==='steam'){ r.setProperty('--bg-img',"url('https://cdn.80.lv/api/upload/post/8664/images/5dce5ead5f8fd/widen_2440x0.jpg')"); r.setProperty('--accent','#d4af37'); r.setProperty('--receipt-bg','#b08d57'); r.setProperty('--receipt-text','#2a1a0a'); r.setProperty('--font','serif'); }
-            if(t==='horror'){ r.setProperty('--bg-img',"url('https://i.redd.it/5js9ixbe6d5b1.jpg')"); r.setProperty('--filter','sepia(0.6) contrast(1.3) brightness(0.85)'); r.setProperty('--font','monospace'); r.setProperty('--card','rgba(45, 45, 20, 0.85)'); }
+        // UTILS
+        function getRandomQuote() {
+            const q = dhammaQuotes[Math.floor(Math.random() * dhammaQuotes.length)];
+            document.getElementById('quote-text').innerText = `"${q.text}"`;
+            document.getElementById('quote-ref').innerText = q.ref;
         }
 
-        async function saveEntry() {
-            const d = document.getElementById('date-input').value; if(!d) return;
-            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+'), note = document.getElementById('note-input').value;
-            let entry = spendings.find(s => s.date === d); if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note}));
-            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
-            await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = ""; document.getElementById('note-input').value = "";
+        function showView(v) {
+            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+            document.getElementById(`view-${v}`).classList.add('active');
+            event.currentTarget.classList.add('active');
         }
 
-        let calcVal = "";
-        function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
-        function calcInput(v) { calcVal += v; updateCalc(); }
-        function calcCmd(c) { calcVal += " " + c + " "; updateCalc(); }
-        function calcClear() { calcVal = ""; updateCalc(); }
-        function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
-        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; } }
+        async function sync() {
+            const storageData = spendings.map(s => ({ 
+                ...s, 
+                cost: s.cost.toString(), 
+                details: s.details.map(d => ({ ...d, price: d.price.toString() })) 
+            }));
+            await fetch(API, { method: "POST", body: JSON.stringify(storageData) });
+        }
 
-        function addBill() { const n = document.getElementById('bill-name').value, a = document.getElementById('bill-amount').value; if(n&&a){ bills.push({name:n, amount:a}); render(); sync(); } }
-        function deleteBill(i) { bills.splice(i,1); render(); sync(); }
-        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); if(s){ s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }}
-        async function clearAllData(){ if(confirm("Wipe all data?")){ spendings=[]; await sync(); render(); }}
-        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active'); }
+        async function deleteItem(date, idx) {
+            const entry = spendings.find(s => s.date === date);
+            if(entry) {
+                entry.details.splice(idx, 1);
+                entry.cost = entry.details.reduce((a, b) => a + b.price, 0n);
+                if(entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
+                await sync();
+                render();
+            }
+        }
+
+        function exportToText() {
+            const start = document.getElementById('export-start').value;
+            const end = document.getElementById('export-end').value;
+            if(!start || !end) return alert("Chọn khoảng ngày!");
+            
+            let report = `HIS BETA 2.0 - REPORT (${start} to ${end})\n`;
+            report += `----------------------------------\n`;
+            spendings.filter(s => s.date >= start && s.date <= end).forEach(s => {
+                report += `${s.date}: ${formatK(s.cost)}\n`;
+                s.details.forEach(d => report += ` - ${d.name}: ${formatK(d.price)}\n`);
+            });
+            
+            const blob = new Blob([report], {type: "text/plain"});
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `HIS_Report_${start}_${end}.txt`;
+            a.click();
+        }
+
+        function changeChart(type) {
+            document.querySelectorAll('.btn-sm').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+            updateChart(type);
+        }
         
-        document.getElementById('date-input').value = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})).toISOString().split('T')[0];
-        load();
+        async function resetData() {
+            if(confirm("Xóa toàn bộ dữ liệu? Thao tác này không thể hoàn tác!")) {
+                spendings = [];
+                await sync();
+                render();
+            }
+        }
     </script>
 </body>
 </html>
