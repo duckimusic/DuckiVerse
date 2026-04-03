@@ -1,192 +1,633 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.5 - Absolute Integers</title>
-    <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
-        body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
-        .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
-        .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
-        .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
-        .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
-        .view.active { display: block; }
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
-        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
-        .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
-        .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; }
-        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
-        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .week-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--gold); }
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; }
-    </style>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>SpendLog</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+:root{
+--bg:#0d1117;
+--card:#161b22;
+--accent:#58a6ff;
+--danger:#f85149;
+--green:#3fb950;
+--gold:#f2cc60;
+}
+
+body{
+margin:0;
+font-family:'Inter',system-ui;
+background:var(--bg);
+color:#e6edf3;
+padding-bottom:120px;
+}
+
+.nav-tabs{
+display:flex;
+position:sticky;
+top:0;
+background:var(--card);
+border-bottom:1px solid #30363d;
+}
+
+.nav-tab{
+flex:1;
+padding:16px;
+text-align:center;
+font-weight:700;
+font-size:12px;
+cursor:pointer;
+color:#8b949e;
+}
+
+.nav-tab.active{
+color:var(--accent);
+border-bottom:2px solid var(--accent);
+}
+
+.view{
+display:none;
+padding:20px;
+max-width:520px;
+margin:auto;
+}
+
+.view.active{display:block;}
+
+input,textarea{
+
+width:100%;
+padding:12px;
+margin:6px 0;
+background:#000;
+border:1px solid #30363d;
+color:white;
+border-radius:10px;
+
+}
+
+button{
+width:100%;
+padding:13px;
+margin-top:6px;
+border-radius:10px;
+border:none;
+font-weight:700;
+cursor:pointer;
+transition:.2s;
+}
+
+button:hover{transform:scale(1.03)}
+
+.btn-save{background:var(--accent);color:white}
+
+.receipt{
+background:var(--card);
+border:1px solid #30363d;
+border-radius:14px;
+padding:16px;
+margin-bottom:14px;
+transition:.2s;
+}
+
+.receipt:hover{transform:translateY(-3px)}
+
+.r-head{
+display:flex;
+justify-content:space-between;
+font-weight:800;
+margin-bottom:10px;
+}
+
+.r-row{
+display:flex;
+justify-content:space-between;
+margin:6px 0;
+font-size:14px;
+}
+
+.note{
+font-size:11px;
+color:#8b949e;
+}
+
+.del{
+cursor:pointer;
+color:var(--danger);
+margin-left:8px;
+}
+
+.r-total{
+border-top:1px solid #30363d;
+margin-top:8px;
+padding-top:6px;
+display:flex;
+justify-content:space-between;
+font-weight:700;
+}
+
+.week-card{
+background:var(--card);
+padding:14px;
+border-radius:10px;
+border:1px solid #30363d;
+margin-bottom:10px;
+display:flex;
+justify-content:space-between;
+}
+
+.total-footer{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:var(--accent);
+padding:16px;
+text-align:center;
+font-weight:800;
+}
+
+</style>
 </head>
+
 <body>
 
-    <div class="nav-tabs">
-        <div class="nav-tab active" onclick="showView('daily')">DAILY LOGS</div>
-        <div class="nav-tab" onclick="showView('weekly')">WEEKLY TOTALS</div>
-        <div class="nav-tab" onclick="showView('tools')">BULK / WIPE</div>
-    </div>
+<div class="nav-tabs">
 
-    <div id="view-daily" class="view active">
-        <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
-            <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
-            <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
-            <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
-        </div>
-        <div id="daily-list" style="margin-top:20px"></div>
-    </div>
+<div class="nav-tab active" onclick="showView('daily')">DAILY</div>
 
-    <div id="view-weekly" class="view"><div id="weekly-breakdown"></div></div>
+<div class="nav-tab" onclick="showView('weekly')">WEEKLY</div>
 
-    <div id="view-tools" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="Paste report here..."></textarea>
-        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <button class="btn-save" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
-    </div>
+<div class="nav-tab" onclick="showView('tools')">TOOLS</div>
 
-    <div class="total-footer">GRAND TOTAL: <span id="grand-total-val">0</span>₫</div>
+</div>
 
-    <script>
-        const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
-        let spendings = [];
+<div id="view-daily" class="view active">
 
-        // Formatting that treats everything as a clean integer string
-        function format(n){ 
-            return new Intl.NumberFormat('vi-VN').format(Math.trunc(Number(n))); 
-        }
+<input id="search-box" placeholder="search">
 
-        // The "Wall": Forces input into a pure integer
-        function toInt(val) {
-            let s = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
-            return Math.trunc(parseInt(s, 10) || 0);
-        }
+<div style="background:var(--card);padding:15px;border-radius:12px;border:1px solid #30363d">
 
-        async function sync(){ 
-            // Ensure every cost is a clean number before stringifying for storage
-            const cleanData = spendings.map(s => ({
-                ...s,
-                cost: Math.trunc(s.cost),
-                details: s.details.map(d => ({ ...d, price: Math.trunc(d.price) }))
-            }));
-            await fetch(API, {method:"POST", body:JSON.stringify(cleanData)}); 
-        }
+<input type="date" id="date-input">
 
-        async function load(){
-            try {
-                const res = await fetch(API);
-                const data = await res.json();
-                // Strip any existing decimals upon loading from the database
-                spendings = (data || []).map(s => ({
-                    ...s,
-                    cost: Math.trunc(s.cost),
-                    details: s.details.map(d => ({ ...d, price: Math.trunc(d.price) }))
-                }));
-                render();
-            } catch(e) { console.error("Load failed"); }
-        }
+<input id="item-input" placeholder="item (gas + drink)">
 
-        function getMondayID(dateStr) {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            let date = new Date(y, m - 1, d);
-            let day = date.getDay();
-            let diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            let monday = new Date(date.setDate(diff));
-            return monday.toISOString().split('T')[0];
-        }
+<input id="cost-input" placeholder="cost (50k + 12k)">
 
-        function render(){
-            let grandTotal = 0;
-            let weeks = {};
-            const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
+<textarea id="note-input" rows="2" placeholder="note"></textarea>
 
-            document.getElementById('daily-list').innerHTML = sorted.map(s => {
-                const dayTotal = Math.trunc(s.cost);
-                grandTotal += dayTotal;
-                const wk = getMondayID(s.date);
-                weeks[wk] = (weeks[wk] || 0) + dayTotal;
-                const [y, m, d] = s.date.split('-');
-                return `
-                <div class="receipt">
-                    <div class="r-head">${d}/${m}/${y}</div>
-                    ${s.details.map((item, idx) => `
-                        <div class="r-row">
-                            <span>${item.name}</span>
-                            <span>${format(item.price)}₫ <span class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
-                        </div>`).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${format(dayTotal)}₫</span></div>
-                </div>`;
-            }).join('');
+<button class="btn-save" onclick="saveEntry()">SAVE</button>
 
-            const sortedWks = Object.keys(weeks).sort((a,b) => new Date(b) - new Date(a));
-            document.getElementById('weekly-breakdown').innerHTML = sortedWks.map(w => `
-                <div class="week-card">
-                    <span style="font-size:12px; color:#8b949e">Week of ${w}</span>
-                    <span style="font-weight:900; color:var(--gold)">${format(weeks[w])}₫</span>
-                </div>`).join('');
+</div>
 
-            document.getElementById('grand-total-val').innerText = format(grandTotal);
-        }
+<div id="daily-list" style="margin-top:20px"></div>
 
-        async function saveEntry(){
-            const d = document.getElementById('date-input').value;
-            if(!d) return;
-            const names = document.getElementById('item-input').value.split('+');
-            const costs = document.getElementById('cost-input').value.split('+');
-            let entry = spendings.find(s => s.date === d);
-            if(!entry){ entry = {date:d, cost:0, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toInt(costs[i])}));
-            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0);
-            await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
-        }
+</div>
 
-        async function importData(){
-            const raw = document.getElementById('bulk-input').value;
-            const segments = raw.split(/\((?=\d+\/\d+)/); 
-            segments.forEach(seg => {
-                const h = seg.match(/(\d+)\/(\d+)/);
-                if(!h) return;
-                const dMap = {'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6};
-                seg.split('\n').forEach(line => {
-                    const day = line.match(/^(T\d|CN)\s*:/i);
-                    if(!day || line.includes(': X')) return;
-                    let dt = new Date(2026, h[2]-1, h[1]);
-                    dt.setDate(dt.getDate() + dMap[day[1].toUpperCase()]);
-                    const ds = dt.toISOString().split('T')[0];
-                    const nums = line.match(/\d+k?/gi);
-                    const sum = nums.reduce((acc, n) => acc + toInt(n), 0);
-                    const name = (line.match(/\(([^)]+)\)/) || [null, "EXPENSE"])[1].toUpperCase();
-                    spendings = spendings.filter(s => s.date !== ds);
-                    spendings.push({date: ds, cost: sum, details: [{name, price: sum}]});
-                });
-            });
-            await sync(); render(); document.getElementById('bulk-input').value = "";
-        }
+<div id="view-weekly" class="view">
 
-        async function deleteLine(date, idx) {
-            const s = spendings.find(x => x.date === date);
-            if(s){
-                s.details.splice(idx, 1);
-                s.cost = s.details.reduce((a,b) => a + b.price, 0);
-                if(s.details.length === 0) spendings = spendings.filter(x => x.date !== date);
-                await sync(); render();
-            }
-        }
+<div id="weekly-breakdown"></div>
 
-        async function clearAllData(){ if(confirm("Wipe everything?")){ spendings=[]; await sync(); render(); }}
-        function showView(v){
-            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
-            document.getElementById(`view-${v}`).classList.add('active');
-            document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
-        }
+<canvas id="monthlyChart"></canvas>
 
-        load();
-    </script>
+</div>
+
+<div id="view-tools" class="view">
+
+<textarea id="bulk-input" rows="10" placeholder="paste weekly report"></textarea>
+
+<button class="btn-save" style="background:var(--green)" onclick="importData()">IMPORT</button>
+
+<button class="btn-save" onclick="exportCSV()">EXPORT CSV</button>
+
+<button class="btn-save" style="margin-top:30px;background:none;border:1px solid var(--danger);color:var(--danger)" onclick="clearAllData()">WIPE DATA</button>
+
+</div>
+
+<div class="total-footer">
+
+TOTAL: <span id="grand-total-val">0</span>₫
+
+</div>
+
+<script>
+
+const API="https://lil-flower-35d8.davidbong808.workers.dev/"
+
+let spendings=[]
+let chart
+
+function format(n){
+return new Intl.NumberFormat('vi-VN').format(Number(n)||0)
+}
+
+function toInt(val){
+
+if(!val) return 0
+
+let s = String(val).toLowerCase().trim()
+
+s = s.replace(/[, ]/g,'')
+
+if(s.includes('k')){
+return Math.round(parseFloat(s.replace('k',''))*1000)
+}
+
+s = s.replace(/[^\d]/g,'')
+
+return Number(s)||0
+
+}
+
+async function sync(){
+
+localStorage.setItem("spendlog_backup",JSON.stringify(spendings))
+
+await fetch(API,{method:"POST",body:JSON.stringify(spendings)})
+
+}
+
+async function load(){
+
+try{
+
+const res=await fetch(API)
+
+const data=await res.json()
+
+spendings=(data||[]).map(s=>({
+
+date:s.date,
+cost:Number(s.cost)||0,
+details:(s.details||[]).map(d=>({
+
+name:d.name,
+price:Number(d.price)||0,
+note:d.note||""
+
+}))
+
+}))
+
+}catch(e){
+
+const local=localStorage.getItem("spendlog_backup")
+
+if(local) spendings=JSON.parse(local)
+
+}
+
+render()
+
+}
+
+function getMondayID(dateStr){
+
+const d=new Date(dateStr)
+const day=d.getDay()
+const diff=d.getDate()-day+(day===0?-6:1)
+
+const monday=new Date(d.setDate(diff))
+
+return monday.toISOString().split('T')[0]
+
+}
+
+function render(){
+
+const query=document.getElementById("search-box").value?.toLowerCase()||""
+
+let total=0
+let weeks={}
+
+const sorted=[...spendings]
+
+.filter(s=>JSON.stringify(s).toLowerCase().includes(query))
+
+.sort((a,b)=>new Date(b.date)-new Date(a.date))
+
+document.getElementById("daily-list").innerHTML=sorted.map(s=>{
+
+const dayTotal=Number(s.cost)||0
+total+=dayTotal
+
+const wk=getMondayID(s.date)
+
+weeks[wk]=(weeks[wk]||0)+dayTotal
+
+const [y,m,d]=s.date.split('-')
+
+return `
+
+<div class="receipt">
+
+<div class="r-head">
+
+<span>${d}/${m}/${y}</span>
+
+<span class="del" onclick="deleteDay('${s.date}')">🗑</span>
+
+</div>
+
+${s.details.map((i,idx)=>`
+
+<div class="r-row">
+
+<div>
+
+${i.name}
+
+${i.note?`<div class="note">${i.note}</div>`:""}
+
+</div>
+
+<div>
+
+${format(i.price)}₫
+
+<span class="del" onclick="editItem('${s.date}',${idx})">✏️</span>
+
+<span class="del" onclick="deleteLine('${s.date}',${idx})">×</span>
+
+</div>
+
+</div>
+
+`).join("")}
+
+<div class="r-total">
+
+<span>TOTAL</span>
+
+<span>${format(dayTotal)}₫</span>
+
+</div>
+
+</div>
+
+`
+
+}).join("")
+
+const sortedWeeks=Object.keys(weeks).sort((a,b)=>new Date(b)-new Date(a))
+
+document.getElementById("weekly-breakdown").innerHTML=sortedWeeks.map(w=>`
+
+<div class="week-card">
+
+<span>${w}</span>
+
+<span style="color:var(--gold)">${format(weeks[w])}₫</span>
+
+</div>
+
+`).join("")
+
+document.getElementById("grand-total-val").innerText=format(total)
+
+renderChart()
+
+}
+
+function renderChart(){
+
+const months={}
+
+spendings.forEach(s=>{
+
+const m=s.date.slice(0,7)
+
+months[m]=(months[m]||0)+Number(s.cost)
+
+})
+
+const labels=Object.keys(months).sort()
+
+const data=labels.map(l=>months[l])
+
+if(chart) chart.destroy()
+
+chart=new Chart(document.getElementById("monthlyChart"),{
+
+type:"bar",
+
+data:{labels,datasets:[{data}]},
+
+options:{plugins:{legend:{display:false}}}
+
+})
+
+}
+
+async function saveEntry(){
+
+const d=document.getElementById("date-input").value
+
+if(!d) return
+
+const names=document.getElementById("item-input").value.split("+")
+
+const costs=document.getElementById("cost-input").value.split("+")
+
+const note=document.getElementById("note-input").value
+
+let entry=spendings.find(s=>s.date===d)
+
+if(!entry){
+
+entry={date:d,cost:0,details:[]}
+
+spendings.push(entry)
+
+}
+
+names.forEach((n,i)=>{
+
+entry.details.push({
+
+name:n.trim().toUpperCase(),
+
+price:toInt(costs[i]),
+
+note:note
+
+})
+
+})
+
+entry.cost=entry.details.reduce((a,b)=>a+Number(b.price),0)
+
+await sync()
+
+render()
+
+document.getElementById("item-input").value=""
+document.getElementById("cost-input").value=""
+document.getElementById("note-input").value=""
+
+}
+
+function editItem(date,idx){
+
+const s=spendings.find(x=>x.date===date)
+
+const item=s.details[idx]
+
+const name=prompt("Edit item",item.name)
+
+const price=prompt("Edit price",item.price)
+
+if(name!==null) item.name=name
+
+if(price!==null) item.price=toInt(price)
+
+s.cost=s.details.reduce((a,b)=>a+Number(b.price),0)
+
+sync()
+
+render()
+
+}
+
+async function deleteLine(date,idx){
+
+const s=spendings.find(x=>x.date===date)
+
+s.details.splice(idx,1)
+
+s.cost=s.details.reduce((a,b)=>a+Number(b.price),0)
+
+if(s.details.length===0)
+
+spendings=spendings.filter(x=>x.date!==date)
+
+await sync()
+
+render()
+
+}
+
+async function deleteDay(date){
+
+spendings=spendings.filter(s=>s.date!==date)
+
+await sync()
+
+render()
+
+}
+
+function exportCSV(){
+
+let rows=[["date","item","price","note"]]
+
+spendings.forEach(s=>{
+
+s.details.forEach(d=>{
+
+rows.push([s.date,d.name,d.price,d.note])
+
+})
+
+})
+
+const csv=rows.map(r=>r.join(",")).join("\n")
+
+const blob=new Blob([csv],{type:"text/csv"})
+
+const a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download="spendlog.csv"
+
+a.click()
+
+}
+
+async function importData(){
+
+const raw=document.getElementById("bulk-input").value
+
+const segments=raw.split(/\((?=\d+\/\d+)/)
+
+segments.forEach(seg=>{
+
+const h=seg.match(/(\d+)\/(\d+)/)
+
+if(!h) return
+
+const dMap={'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6}
+
+seg.split('\n').forEach(line=>{
+
+const day=line.match(/^(T\d|CN)\s*:/i)
+
+if(!day||line.includes(': X')) return
+
+let dt=new Date(2026,h[2]-1,h[1])
+
+dt.setDate(dt.getDate()+dMap[day[1].toUpperCase()])
+
+const ds=dt.toISOString().split('T')[0]
+
+const nums=line.match(/\d+k?/gi)||[]
+
+const sum=nums.reduce((a,n)=>a+toInt(n),0)
+
+spendings=spendings.filter(s=>s.date!==ds)
+
+spendings.push({date:ds,cost:sum,details:[{name:"IMPORT",price:sum}]})
+
+})
+
+})
+
+sync()
+
+render()
+
+}
+
+async function clearAllData(){
+
+if(confirm("wipe everything?")){
+
+spendings=[]
+
+await sync()
+
+render()
+
+}
+
+}
+
+function showView(v){
+
+document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"))
+
+document.querySelectorAll(".nav-tab").forEach(e=>e.classList.remove("active"))
+
+document.getElementById(`view-${v}`).classList.add("active")
+
+event.target.classList.add("active")
+
+}
+
+document.getElementById("search-box").addEventListener("input",render)
+
+load()
+
+</script>
+
 </body>
 </html>
