@@ -3,20 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.7 - k-Display</title>
+    <title>SpendLog 11.8 - True k-Display</title>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
         body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
+        
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
         .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        
         .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
         .view.active { display: block; }
+        
         .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 14px; }
         .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
+        
         input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
         .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
         .week-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--gold); }
@@ -49,21 +53,21 @@
         <button class="btn-save" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
     </div>
 
-    <div class="total-footer">TOTAL: <span id="grand-total-val">0</span></div>
+    <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
 
-        // NEW: Formats 12000 to "12k" and 4584000 to "4,584k"
+        // FIXED: Divides by 1000 before adding "k" so 16000 becomes 16k
         function formatK(n) {
-            let val = Number(n);
-            if (val === 0) return "0k";
-            let kValue = val / 1000;
-            // Use Intl to add commas to the 'k' part, e.g., 4,584k
+            let num = Number(n); 
+            if (num === 0) return "0k";
+            let kValue = Math.floor(num / 1000); 
             return new Intl.NumberFormat('en-US').format(kValue) + "k";
         }
 
+        // Clean BigInt logic - no decimals allowed
         function toBigInt(val) {
             if (!val) return 0n;
             let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
@@ -180,6 +184,7 @@
         }
 
         async function clearAllData(){ if(confirm("Wipe everything?")){ spendings=[]; await sync(); render(); }}
+        
         function showView(v){
             document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
@@ -187,10 +192,9 @@
             document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
         }
 
-        // Default to VN Today
         const vnNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
         document.getElementById('date-input').value = vnNow.toISOString().split('T')[0];
-
+        
         load();
     </script>
 </body>
