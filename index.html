@@ -8,7 +8,6 @@
 <title>SpendLog</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -63,7 +62,6 @@ margin:auto;
 .view.active{display:block;}
 
 input,textarea{
-
 width:100%;
 padding:12px;
 margin:6px 0;
@@ -71,7 +69,6 @@ background:#000;
 border:1px solid #30363d;
 color:white;
 border-radius:10px;
-
 }
 
 button{
@@ -82,10 +79,7 @@ border-radius:10px;
 border:none;
 font-weight:700;
 cursor:pointer;
-transition:.2s;
 }
-
-button:hover{transform:scale(1.03)}
 
 .btn-save{background:var(--accent);color:white}
 
@@ -95,10 +89,7 @@ border:1px solid #30363d;
 border-radius:14px;
 padding:16px;
 margin-bottom:14px;
-transition:.2s;
 }
-
-.receipt:hover{transform:translateY(-3px)}
 
 .r-head{
 display:flex;
@@ -161,13 +152,9 @@ font-weight:800;
 <body>
 
 <div class="nav-tabs">
-
 <div class="nav-tab active" onclick="showView('daily')">DAILY</div>
-
 <div class="nav-tab" onclick="showView('weekly')">WEEKLY</div>
-
 <div class="nav-tab" onclick="showView('tools')">TOOLS</div>
-
 </div>
 
 <div id="view-daily" class="view active">
@@ -177,11 +164,8 @@ font-weight:800;
 <div style="background:var(--card);padding:15px;border-radius:12px;border:1px solid #30363d">
 
 <input type="date" id="date-input">
-
 <input id="item-input" placeholder="item (gas + drink)">
-
 <input id="cost-input" placeholder="cost (50k + 12k)">
-
 <textarea id="note-input" rows="2" placeholder="note"></textarea>
 
 <button class="btn-save" onclick="saveEntry()">SAVE</button>
@@ -193,11 +177,8 @@ font-weight:800;
 </div>
 
 <div id="view-weekly" class="view">
-
 <div id="weekly-breakdown"></div>
-
 <canvas id="monthlyChart"></canvas>
-
 </div>
 
 <div id="view-tools" class="view">
@@ -205,53 +186,78 @@ font-weight:800;
 <textarea id="bulk-input" rows="10" placeholder="paste weekly report"></textarea>
 
 <button class="btn-save" style="background:var(--green)" onclick="importData()">IMPORT</button>
-
 <button class="btn-save" onclick="exportCSV()">EXPORT CSV</button>
 
-<button class="btn-save" style="margin-top:30px;background:none;border:1px solid var(--danger);color:var(--danger)" onclick="clearAllData()">WIPE DATA</button>
+<button class="btn-save"
+style="margin-top:30px;background:none;border:1px solid var(--danger);color:var(--danger)"
+onclick="clearAllData()">WIPE DATA</button>
 
 </div>
 
 <div class="total-footer">
-
 TOTAL: <span id="grand-total-val">0</span>₫
-
 </div>
 
 <script>
 
 const API="https://lil-flower-35d8.davidbong808.workers.dev/"
-
 let spendings=[]
 let chart
 
 function format(n){
-return new Intl.NumberFormat('vi-VN').format(Number(n)||0)
+return new Intl.NumberFormat('vi-VN').format(parseInt(n,10)||0)
 }
 
 function toInt(val){
 
 if(!val) return 0
 
-let s = String(val).toLowerCase().trim()
+let s=String(val).toLowerCase().trim()
 
-s = s.replace(/[, ]/g,'')
+s=s.replace(/[, ]/g,'')
 
-if(s.includes('k')){
-return Math.round(parseFloat(s.replace('k',''))*1000)
+if(s.endsWith('k')){
+return Math.round(parseFloat(s)*1000)
 }
 
-s = s.replace(/[^\d]/g,'')
+s=s.replace(/\D/g,'')
 
-return Number(s)||0
+return parseInt(s,10)||0
+
+}
+
+function sanitizeData(data){
+
+return (data||[]).map(s=>({
+
+date:String(s.date),
+
+cost:parseInt(s.cost,10)||0,
+
+details:(s.details||[]).map(d=>({
+
+name:String(d.name||""),
+
+price:parseInt(d.price,10)||0,
+
+note:String(d.note||"")
+
+}))
+
+}))
 
 }
 
 async function sync(){
 
+spendings=sanitizeData(spendings)
+
 localStorage.setItem("spendlog_backup",JSON.stringify(spendings))
 
-await fetch(API,{method:"POST",body:JSON.stringify(spendings)})
+await fetch(API,{
+method:"POST",
+body:JSON.stringify(spendings)
+})
 
 }
 
@@ -260,28 +266,15 @@ async function load(){
 try{
 
 const res=await fetch(API)
-
 const data=await res.json()
 
-spendings=(data||[]).map(s=>({
-
-date:s.date,
-cost:Number(s.cost)||0,
-details:(s.details||[]).map(d=>({
-
-name:d.name,
-price:Number(d.price)||0,
-note:d.note||""
-
-}))
-
-}))
+spendings=sanitizeData(data)
 
 }catch(e){
 
 const local=localStorage.getItem("spendlog_backup")
 
-if(local) spendings=JSON.parse(local)
+if(local) spendings=sanitizeData(JSON.parse(local))
 
 }
 
@@ -294,7 +287,6 @@ function getMondayID(dateStr){
 const d=new Date(dateStr)
 const day=d.getDay()
 const diff=d.getDate()-day+(day===0?-6:1)
-
 const monday=new Date(d.setDate(diff))
 
 return monday.toISOString().split('T')[0]
@@ -316,11 +308,10 @@ const sorted=[...spendings]
 
 document.getElementById("daily-list").innerHTML=sorted.map(s=>{
 
-const dayTotal=Number(s.cost)||0
+const dayTotal=parseInt(s.cost,10)||0
 total+=dayTotal
 
 const wk=getMondayID(s.date)
-
 weeks[wk]=(weeks[wk]||0)+dayTotal
 
 const [y,m,d]=s.date.split('-')
@@ -332,7 +323,6 @@ return `
 <div class="r-head">
 
 <span>${d}/${m}/${y}</span>
-
 <span class="del" onclick="deleteDay('${s.date}')">🗑</span>
 
 </div>
@@ -342,21 +332,14 @@ ${s.details.map((i,idx)=>`
 <div class="r-row">
 
 <div>
-
 ${i.name}
-
 ${i.note?`<div class="note">${i.note}</div>`:""}
-
 </div>
 
 <div>
-
 ${format(i.price)}₫
-
 <span class="del" onclick="editItem('${s.date}',${idx})">✏️</span>
-
 <span class="del" onclick="deleteLine('${s.date}',${idx})">×</span>
-
 </div>
 
 </div>
@@ -364,11 +347,8 @@ ${format(i.price)}₫
 `).join("")}
 
 <div class="r-total">
-
 <span>TOTAL</span>
-
 <span>${format(dayTotal)}₫</span>
-
 </div>
 
 </div>
@@ -382,11 +362,8 @@ const sortedWeeks=Object.keys(weeks).sort((a,b)=>new Date(b)-new Date(a))
 document.getElementById("weekly-breakdown").innerHTML=sortedWeeks.map(w=>`
 
 <div class="week-card">
-
 <span>${w}</span>
-
 <span style="color:var(--gold)">${format(weeks[w])}₫</span>
-
 </div>
 
 `).join("")
@@ -402,27 +379,19 @@ function renderChart(){
 const months={}
 
 spendings.forEach(s=>{
-
 const m=s.date.slice(0,7)
-
-months[m]=(months[m]||0)+Number(s.cost)
-
+months[m]=(months[m]||0)+parseInt(s.cost,10)
 })
 
 const labels=Object.keys(months).sort()
-
 const data=labels.map(l=>months[l])
 
 if(chart) chart.destroy()
 
 chart=new Chart(document.getElementById("monthlyChart"),{
-
 type:"bar",
-
 data:{labels,datasets:[{data}]},
-
 options:{plugins:{legend:{display:false}}}
-
 })
 
 }
@@ -430,43 +399,32 @@ options:{plugins:{legend:{display:false}}}
 async function saveEntry(){
 
 const d=document.getElementById("date-input").value
-
 if(!d) return
 
 const names=document.getElementById("item-input").value.split("+")
-
 const costs=document.getElementById("cost-input").value.split("+")
-
 const note=document.getElementById("note-input").value
 
 let entry=spendings.find(s=>s.date===d)
 
 if(!entry){
-
 entry={date:d,cost:0,details:[]}
-
 spendings.push(entry)
-
 }
 
 names.forEach((n,i)=>{
 
 entry.details.push({
-
 name:n.trim().toUpperCase(),
-
 price:toInt(costs[i]),
-
 note:note
-
 })
 
 })
 
-entry.cost=entry.details.reduce((a,b)=>a+Number(b.price),0)
+entry.cost=entry.details.reduce((a,b)=>a+parseInt(b.price,10),0)
 
 await sync()
-
 render()
 
 document.getElementById("item-input").value=""
@@ -478,21 +436,17 @@ document.getElementById("note-input").value=""
 function editItem(date,idx){
 
 const s=spendings.find(x=>x.date===date)
-
 const item=s.details[idx]
 
 const name=prompt("Edit item",item.name)
-
 const price=prompt("Edit price",item.price)
 
 if(name!==null) item.name=name
-
 if(price!==null) item.price=toInt(price)
 
-s.cost=s.details.reduce((a,b)=>a+Number(b.price),0)
+s.cost=s.details.reduce((a,b)=>a+parseInt(b.price,10),0)
 
 sync()
-
 render()
 
 }
@@ -503,14 +457,12 @@ const s=spendings.find(x=>x.date===date)
 
 s.details.splice(idx,1)
 
-s.cost=s.details.reduce((a,b)=>a+Number(b.price),0)
+s.cost=s.details.reduce((a,b)=>a+parseInt(b.price,10),0)
 
 if(s.details.length===0)
-
 spendings=spendings.filter(x=>x.date!==date)
 
 await sync()
-
 render()
 
 }
@@ -520,7 +472,6 @@ async function deleteDay(date){
 spendings=spendings.filter(s=>s.date!==date)
 
 await sync()
-
 render()
 
 }
@@ -530,13 +481,9 @@ function exportCSV(){
 let rows=[["date","item","price","note"]]
 
 spendings.forEach(s=>{
-
 s.details.forEach(d=>{
-
 rows.push([s.date,d.name,d.price,d.note])
-
 })
-
 })
 
 const csv=rows.map(r=>r.join(",")).join("\n")
@@ -546,9 +493,7 @@ const blob=new Blob([csv],{type:"text/csv"})
 const a=document.createElement("a")
 
 a.href=URL.createObjectURL(blob)
-
 a.download="spendlog.csv"
-
 a.click()
 
 }
@@ -556,13 +501,11 @@ a.click()
 async function importData(){
 
 const raw=document.getElementById("bulk-input").value
-
 const segments=raw.split(/\((?=\d+\/\d+)/)
 
 segments.forEach(seg=>{
 
 const h=seg.match(/(\d+)\/(\d+)/)
-
 if(!h) return
 
 const dMap={'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6}
@@ -570,29 +513,29 @@ const dMap={'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6}
 seg.split('\n').forEach(line=>{
 
 const day=line.match(/^(T\d|CN)\s*:/i)
-
 if(!day||line.includes(': X')) return
 
 let dt=new Date(2026,h[2]-1,h[1])
-
 dt.setDate(dt.getDate()+dMap[day[1].toUpperCase()])
 
 const ds=dt.toISOString().split('T')[0]
 
 const nums=line.match(/\d+k?/gi)||[]
-
 const sum=nums.reduce((a,n)=>a+toInt(n),0)
 
 spendings=spendings.filter(s=>s.date!==ds)
 
-spendings.push({date:ds,cost:sum,details:[{name:"IMPORT",price:sum}]})
-
+spendings.push({
+date:ds,
+cost:sum,
+details:[{name:"IMPORT",price:sum}]
 })
 
 })
 
-sync()
+})
 
+await sync()
 render()
 
 }
@@ -600,13 +543,9 @@ render()
 async function clearAllData(){
 
 if(confirm("wipe everything?")){
-
 spendings=[]
-
 await sync()
-
 render()
-
 }
 
 }
@@ -614,11 +553,9 @@ render()
 function showView(v){
 
 document.querySelectorAll(".view").forEach(e=>e.classList.remove("active"))
-
 document.querySelectorAll(".nav-tab").forEach(e=>e.classList.remove("active"))
 
 document.getElementById(`view-${v}`).classList.add("active")
-
 event.target.classList.add("active")
 
 }
