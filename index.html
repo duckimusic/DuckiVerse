@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.1 - Sync Patch</title>
+    <title>SpendLog 12.8.2 - Full Restoration</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -135,7 +135,7 @@
         <div class="calc-screen" id="calc-display">0</div>
         <div class="calc-grid">
             <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
-            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
+            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calc6('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
             <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
             <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
         </div>
@@ -196,11 +196,33 @@
             updateChart('14d');
         }
 
+        async function importData() {
+            const input = document.getElementById('bulk-input').value;
+            if (!input) return alert("Paste data first!");
+            const lines = input.split('\n');
+            let count = 0;
+            lines.forEach(line => {
+                const match = line.match(/(\d{1,2}\/\d{1,2})\s+(.+?)\s+(\d+k|\d+)/i);
+                if (match) {
+                    const [_, dateStr, name, priceStr] = match;
+                    const [d, m] = dateStr.split('/');
+                    const year = new Date().getFullYear();
+                    const isoDate = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+                    let entry = spendings.find(s => s.date === isoDate);
+                    if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
+                    entry.details.push({ name: name.toUpperCase().trim(), price: toBigInt(priceStr), note: "Bulk Import" });
+                    entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
+                    count++;
+                }
+            });
+            if (count > 0) { await sync(); render(); document.getElementById('bulk-input').value = ""; alert(`Imported ${count} items.`); }
+            else alert("Format: DD/MM Name Price (31/03 Lunch 50k)");
+        }
+
         function updateChart(range = '14d') {
             const ctx = document.getElementById('spendingChart').getContext('2d');
             const allSorted = [...spendings].sort((a, b) => a.date.localeCompare(b.date));
             let labels = [], data = [], labelText = "";
-
             if (range === '14d') {
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
@@ -221,7 +243,6 @@
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
                 labelText = "Annual";
             }
-
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
@@ -237,7 +258,6 @@
             const fx = document.getElementById('scanlines');
             fx.style.setProperty('--fx', t==='retro'?'block':'none');
             r.setProperty('--font','sans-serif'); r.setProperty('--glow','none'); r.setProperty('--filter','none'); r.setProperty('--receipt-tilt','none'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--card','rgba(13, 17, 23, 0.8)');
-
             if(t==='retro'){ 
                 r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); 
                 r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 15px #ff00ff'); 
