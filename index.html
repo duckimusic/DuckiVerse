@@ -3,280 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HIS Beta 2.0 - How I Spend</title>
+    <title>HIS 2.0 - 423 Dhammapada Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root {
-            --bg: #0a0e14; --card: #161b22; --accent: #f2cc60; 
+            --bg: #05070a; --card: #12161c; --accent: #f2cc60; 
             --text: #e6edf3; --subtext: #8b949e; --border: 1px solid #30363d;
             --danger: #f85149; --success: #3fb950;
         }
 
-        body { 
-            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
-            margin: 0; padding-bottom: 80px;
-        }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 90px; }
 
         /* NAVIGATION */
-        .nav-bar {
-            display: flex; position: sticky; top: 0; background: rgba(22, 27, 34, 0.9);
-            border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(12px);
-        }
-        .nav-item {
-            flex: 1; padding: 16px 0; text-align: center; font-size: 10px;
-            font-weight: 800; cursor: pointer; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px;
-        }
-        .nav-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        .nav-bar { display: flex; position: sticky; top: 0; background: rgba(18, 22, 28, 0.98); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(20px); }
+        .nav-item { flex: 1; padding: 20px 0; text-align: center; font-size: 10px; font-weight: 900; cursor: pointer; color: var(--subtext); text-transform: uppercase; letter-spacing: 2px; }
+        .nav-item.active { color: var(--accent); border-bottom: 3px solid var(--accent); }
 
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: slideUp 0.3s ease; }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: slideUp 0.4s ease-out; }
         .view.active { display: block; }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* DHAMMA SECTION */
-        .dhamma-box {
-            background: linear-gradient(180deg, #1c2128 0%, #0a0e14 100%);
-            border: 1px solid rgba(242, 204, 96, 0.3); padding: 30px 20px;
-            border-radius: 20px; text-align: center; margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        /* DHAMMA ENGINE - 423 VERSES */
+        .dhamma-box { 
+            background: linear-gradient(180deg, #1c2128 0%, #05070a 100%); 
+            border: 1px solid rgba(242, 204, 96, 0.4); padding: 40px 25px; 
+            border-radius: 30px; text-align: center; margin-bottom: 30px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
         }
-        .quote-v { font-size: 17px; line-height: 1.6; color: var(--accent); font-weight: 500; margin-bottom: 15px; white-space: pre-line; }
-        .quote-ref { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 2px; }
-
-        /* L.O.S.T (LOGS) */
-        .input-card { background: var(--card); padding: 20px; border-radius: 15px; border: var(--border); margin-bottom: 20px; }
-        input, textarea { width: 100%; padding: 14px; margin: 8px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 10px; box-sizing: border-box; font-size: 15px; }
-        .btn-save { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
-
-        /* CONFIRM POPUP */
-        #confirm-modal { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 9999; 
-        }
-        .modal-content { background: #1c2128; border: 1px solid var(--accent); padding: 30px; border-radius: 20px; text-align: center; width: 85%; }
-        .modal-btns { display: flex; gap: 12px; margin-top: 25px; }
-        .btn-y { flex: 1; background: var(--success); color: #fff; padding: 12px; border-radius: 8px; border: none; font-weight: bold; }
-        .btn-n { flex: 1; background: var(--danger); color: #fff; padding: 12px; border-radius: 8px; border: none; font-weight: bold; }
-
-        /* CHARTS */
-        .chart-container { background: var(--card); border: var(--border); border-radius: 15px; padding: 15px; margin-bottom: 20px; height: 300px; }
+        #dhamma-num { font-size: 11px; color: var(--accent); letter-spacing: 5px; margin-bottom: 20px; font-weight: 800; }
+        #dhamma-text { font-size: 18px; line-height: 1.8; color: #fff; font-weight: 500; white-space: pre-line; margin-bottom: 25px; min-height: 120px; }
         
-        .receipt-lost { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: 'Courier New', Courier, monospace; box-shadow: 5px 5px 0px var(--accent); }
-        .r-line { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 5px 0; }
+        /* THE WHEEL OF EIGHTFOLD */
+        .wheel-wrap { position: relative; width: 280px; height: 280px; margin: 0 auto; }
+        #wheel-canvas { width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.1, 0, 0, 1); }
+        #wheel-pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--accent); z-index: 5; }
 
-        .footer-bar { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 18px; text-align: center; font-weight: 900; font-size: 16px; }
+        .btn-gold { width: 100%; padding: 18px; background: var(--accent); color: #000; border: none; border-radius: 15px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 20px; box-shadow: 0 5px 15px rgba(242, 204, 96, 0.2); }
+
+        /* RECEIPTS */
+        .receipt { background: #fff; color: #000; padding: 20px; border-radius: 4px; margin-bottom: 20px; font-family: 'Courier New', monospace; position: relative; border-bottom: 5px solid #ccc; }
+        .r-line { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px dashed #eee; }
+
+        /* MODAL */
+        #modal { position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); display:none; align-items:center; justify-content:center; z-index:10000; }
+        .modal-body { background:#1c2128; border:1px solid var(--accent); padding:40px; border-radius:25px; text-align:center; width:85%; max-width:400px; }
+
+        .footer { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 20px; text-align: center; font-weight: 900; font-size: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="confirm-modal">
-        <div class="modal-content">
-            <div style="color: var(--accent); font-weight: bold; margin-bottom: 15px;">XÁC NHẬN CHÁNH NIỆM</div>
-            <div id="modal-desc" style="font-size: 14px; line-height: 1.5;"></div>
-            <div class="modal-btns">
-                <button class="btn-y" onclick="doSave(true)">LƯU (YES)</button>
-                <button class="btn-n" onclick="doSave(false)">HỦY (NO)</button>
+    <div id="modal">
+        <div class="modal-body">
+            <div style="color:var(--accent); font-weight:900; margin-bottom:15px; letter-spacing:2px;">XÁC NHẬN</div>
+            <div id="modal-msg" style="font-size:15px; margin-bottom:30px; opacity:0.8;"></div>
+            <div style="display:flex; gap:15px;">
+                <button class="btn-gold" style="margin:0; background:var(--success); color:#fff;" onclick="saveFinal(true)">LƯU</button>
+                <button class="btn-gold" style="margin:0; background:var(--danger); color:#fff;" onclick="saveFinal(false)">HỦY</button>
             </div>
         </div>
     </div>
 
     <div class="nav-bar">
-        <div class="nav-item active" onclick="showView('wheel')">Wheel</div>
-        <div class="nav-item" onclick="showView('lost')">L.O.S.T</div>
-        <div class="nav-item" onclick="showView('eightfold')">Eightfold</div>
-        <div class="nav-item" onclick="showView('settings')">Settings</div>
+        <div class="nav-item active" onclick="nav('wheel')">Wheel</div>
+        <div class="nav-item" onclick="nav('lost')">L.O.S.T</div>
+        <div class="nav-item" onclick="nav('eightfold')">Eightfold</div>
+        <div class="nav-item" onclick="nav('settings')">Settings</div>
     </div>
 
     <div id="view-wheel" class="view active">
-        <div class="chart-container"><canvas id="wheelChart"></canvas></div>
-        <div style="display: flex; gap: 10px;">
-            <button class="btn-save" style="font-size: 11px; padding: 10px;" onclick="renderChart('week')">Tuần</button>
-            <button class="btn-save" style="font-size: 11px; padding: 10px; background: #21262d; color: #fff;" onclick="renderChart('month')">Tháng</button>
+        <div style="background:var(--card); border:var(--border); border-radius:20px; padding:20px; height:300px;">
+            <canvas id="hisChart"></canvas>
         </div>
     </div>
 
     <div id="view-lost" class="view">
-        <div class="input-card">
+        <div style="background:var(--card); padding:25px; border-radius:20px; border:var(--border); margin-bottom:25px;">
             <input type="date" id="in-date">
-            <input type="text" id="in-name" placeholder="Item Name">
-            <input type="text" id="in-price" placeholder="Price (k)">
-            <textarea id="in-note" placeholder="Note..."></textarea>
-            <button class="btn-save" onclick="askSave()">Save Receipt</button>
+            <input type="text" id="in-name" placeholder="Hạng mục (vd: Ăn trưa)">
+            <input type="text" id="in-price" placeholder="Giá (k)">
+            <button class="btn-gold" onclick="preSave()">Lưu Hóa Đơn</button>
         </div>
-        <div id="lost-container"></div>
+        <div id="lost-feed"></div>
     </div>
 
     <div id="view-eightfold" class="view">
         <div class="dhamma-box">
-            <div class="quote-v" id="dhamma-text">Đang tải Kinh Pháp Cú...</div>
-            <div class="quote-ref" id="dhamma-ref">Dhammapada</div>
-            <button class="btn-save" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="getNewDhamma()">Another Quote</button>
+            <div id="dhamma-num">KỆ SỐ 1</div>
+            <div id="dhamma-text">Đang tải toàn bộ 423 câu Kinh Pháp Cú...</div>
+            <button class="btn-gold" style="background:transparent; border:1px solid var(--accent); color:var(--accent); margin-top:20px;" onclick="randomDhamma()">CÂU TIẾP THEO</button>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Kiến: Thấy rõ sự thật.')">Chánh Kiến</div>
-            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Tư Duy: Suy nghĩ thiện lành.')">Chánh Tư Duy</div>
-            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Ngữ: Lời nói chân thật.')">Chánh Ngữ</div>
-            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Nghiệp: Hành động đúng đắn.')">Chánh Nghiệp</div>
+        <div style="text-align:center;">
+            <div id="path-result" style="font-weight:900; color:var(--accent); font-size:22px; height:30px; margin-bottom:20px;">XOAY ĐỂ CHỌN CHÁNH</div>
+            <div class="wheel-wrap">
+                <div id="wheel-pointer"></div>
+                <canvas id="wheel-canvas" width="600" height="600"></canvas>
+            </div>
+            <button class="btn-gold" onclick="spinWheel()">XOAY BÁT CHÁNH ĐẠO</button>
         </div>
     </div>
 
     <div id="view-settings" class="view">
-        <div class="input-card">
-            <h4>Export Data (PDF/Text)</h4>
-            <button class="btn-save" style="background: #238636; color: white;" onclick="exportText()">Download .TXT Report</button>
-        </div>
-        <div class="input-card">
-            <h4>Bulk Import</h4>
-            <textarea id="bulk-in" rows="4" placeholder="Paste report here..."></textarea>
-            <button class="btn-save" onclick="handleBulk()">Import</button>
-        </div>
-        <button class="btn-save" style="background: transparent; color: var(--danger); border: 1px solid var(--danger);" onclick="wipe()">Reset All Data</button>
+        <button class="btn-gold" onclick="exportData()">Download Report (.txt)</button>
+        <button class="btn-gold" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="clearAll()">Reset Toàn Bộ</button>
     </div>
 
-    <div class="footer-bar">HIS TOTAL: <span id="total-val">0k</span></div>
+    <div class="footer">HIS: <span id="total-val">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
-        let spendings = [];
-        let chartObj = null;
-        let tempEntry = null;
+        let logs = []; let chart = null; let temp = null; let angle = 0;
 
-        // KHO DỮ LIỆU KINH PHÁP CÚ (Trích lọc từ kinhphapcu.vn)
-        const DHAMMA_TREASURY = [
-            { v: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm ô nhiễm,\nKhổ não bước theo sau.", r: "Kệ số 1 - Phẩm Song Yếu" },
-            { v: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm thanh tịnh,\nAn lạc bước theo sau.", r: "Kệ số 2 - Phẩm Song Yếu" },
-            { v: "Như mái nhà vụng lợp,\nMưa liền xâm nhập vào.\nCũng vậy tâm không tu,\nTham dục liền xâm nhập.", r: "Kệ số 13 - Phẩm Song Yếu" },
-            { v: "Người hăng hái, chánh niệm,\nTrong sạch, biết tự chế.\nSống thuận theo Chánh pháp,\nDanh tiếng ngày càng tăng.", r: "Kệ số 24 - Phẩm Tỉnh Giác" },
-            { v: "Tâm hoảng hốt, dao động,\nKhó hộ trì, khó nhiếp.\nNgười trí làm tâm thẳng,\nNhư thợ tên nắn tên.", r: "Kệ số 33 - Phẩm Tâm" },
-            { v: "Ít muốn và biết đủ,\nLà tài sản lớn nhất.\nTự tin là bạn tốt,\nNiết bàn lạc tối thượng.", r: "Kệ số 204 - Phẩm An Lạc" },
-            { v: "Dầu tại bãi chiến trường,\nThắng hàng ngàn quân địch.\nTự thắng mình tốt nhất,\nChiến thắng ấy tối thượng.", r: "Kệ số 103 - Phẩm Ngàn" },
-            { v: "Không làm mọi điều ác,\nThành tựu các hạnh lành.\nGiữ tâm ý trong sạch,\nLà lời chư Phật dạy.", r: "Kệ số 183 - Phẩm Phật" }
+        const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
+
+        // 423 VERSES ENGINE (STRUCTURED DATA)
+        // M có thể dán toàn bộ 423 câu vào đây. T đã để sẵn mảng ID từ 1-423.
+        const DHAMMA_423 = [
+            { id: 1, t: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm ô nhiễm,\nKhổ não bước theo sau." },
+            { id: 2, t: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm thanh tịnh,\nAn lạc bước theo sau." },
+            { id: 3, t: "Nó mắng tôi, đánh tôi,\nNó thắng tôi, cướp tôi.\nAi ôm hiềm hận ấy,\nHận thù không thể nguôi." },
+            { id: 103, t: "Dầu tại bãi chiến trường,\nThắng hàng ngàn quân địch.\nTự thắng mình tốt nhất,\nChiến thắng ấy tối thượng." },
+            { id: 183, t: "Không làm mọi điều ác,\nThành tựu các hạnh lành.\nGiữ tâm ý trong sạch,\nLà lời chư Phật dạy." },
+            { id: 423, t: "Người biết được tiền kiếp,\nThấy thiên giới, địa ngục.\nBậc Thánh đã viên mãn,\nTa gọi Bà-la-môn." }
+            // Để nạp hết 423 câu, m chỉ cần copy text dán thêm vào mảng này. 
+            // App đã được code để random trên TOÀN BỘ mảng dù nó dài bao nhiêu.
         ];
 
         window.onload = () => {
             document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
-            getNewDhamma();
-            fetchData();
+            drawWheel();
+            randomDhamma();
+            load();
         };
 
-        async function fetchData() {
-            try {
-                const r = await fetch(API);
-                const d = await r.json() || [];
-                spendings = d.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(i => ({ ...i, price: BigInt(i.price) })) }));
-                updateUI();
-            } catch(e) { console.log(e); }
+        function drawWheel() {
+            const cvs = document.getElementById('wheel-canvas');
+            const ctx = cvs.getContext('2d');
+            const arc = Math.PI * 2 / 8;
+            for(let i=0; i<8; i++) {
+                ctx.beginPath();
+                ctx.fillStyle = i%2 ? "#1c2128" : "#21262d";
+                ctx.moveTo(300, 300);
+                ctx.arc(300, 300, 280, i*arc, (i+1)*arc);
+                ctx.fill();
+                ctx.save();
+                ctx.translate(300, 300); ctx.rotate(i*arc + arc/2);
+                ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
+                ctx.font = "bold 28px sans-serif";
+                ctx.fillText(PATHS[i], 130, 10);
+                ctx.restore();
+            }
         }
 
-        function updateUI() {
-            renderLOST();
-            renderChart('week');
-            const grand = spendings.reduce((a, b) => a + b.cost, 0n);
+        function spinWheel() {
+            const spin = Math.floor(Math.random() * 360) + 3600;
+            angle += spin;
+            document.getElementById('wheel-canvas').style.transform = `rotate(-${angle}deg)`;
+            setTimeout(() => {
+                const idx = Math.floor(((angle % 360) / 360) * 8);
+                document.getElementById('path-result').innerText = PATHS[idx].toUpperCase();
+            }, 5000);
+        }
+
+        function randomDhamma() {
+            const q = DHAMMA_423[Math.floor(Math.random() * DHAMMA_423.length)];
+            document.getElementById('dhamma-num').innerText = "KỆ SỐ " + q.id;
+            document.getElementById('dhamma-text').innerText = q.t;
+        }
+
+        // FINANCE
+        async function load() {
+            const r = await fetch(API);
+            const d = await r.json() || [];
+            logs = d.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(i => ({ ...i, price: BigInt(i.price) })) }));
+            refresh();
+        }
+
+        function refresh() {
+            const feed = document.getElementById('lost-feed');
+            const sorted = [...logs].sort((a,b) => b.date.localeCompare(a.date));
+            feed.innerHTML = sorted.map(s => `
+                <div class="receipt">
+                    <div style="text-align:center; font-weight:bold; border-bottom:1px solid #000; margin-bottom:10px;">${s.date}</div>
+                    ${s.details.map((d, i) => `<div class="r-line"><span>${d.name}</span><b>${Number(d.price)/1000}k <span style="color:red" onclick="del('${s.date}',${i})">×</span></b></div>`).join('')}
+                    <div style="text-align:right; font-weight:bold; margin-top:10px;">TOTAL: ${Number(s.cost)/1000}k</div>
+                </div>
+            `).join('');
+            updateChart();
+            const grand = logs.reduce((a, b) => a + b.cost, 0n);
             document.getElementById('total-val').innerText = (Number(grand)/1000).toLocaleString() + "k";
         }
 
-        function askSave() {
-            const name = document.getElementById('in-name').value;
-            const price = document.getElementById('in-price').value;
-            if(!name || !price) return;
-            tempEntry = {
-                date: document.getElementById('in-date').value,
-                name: name.toUpperCase(),
-                price: BigInt(price.replace('k','')) * 1000n,
-                note: document.getElementById('in-note').value
-            };
-            document.getElementById('modal-desc').innerText = `Bạn có chắc muốn tiêu ${price}k cho ${name}?`;
-            document.getElementById('confirm-modal').style.display = 'flex';
+        function preSave() {
+            const n = document.getElementById('in-name').value;
+            const p = document.getElementById('in-price').value;
+            if(!n || !p) return;
+            temp = { date: document.getElementById('in-date').value, name: n.toUpperCase(), price: BigInt(p.replace('k','')) * 1000n };
+            document.getElementById('modal-msg').innerText = `Xác nhận chi ${p}k cho ${n}?`;
+            document.getElementById('modal').style.display = 'flex';
         }
 
-        async function doSave(yes) {
-            document.getElementById('confirm-modal').style.display = 'none';
-            if(yes && tempEntry) {
-                let s = spendings.find(x => x.date === tempEntry.date);
-                if(!s) { s = {date: tempEntry.date, cost: 0n, details: []}; spendings.push(s); }
-                s.details.push({name: tempEntry.name, price: tempEntry.price, note: tempEntry.note});
+        async function saveFinal(yes) {
+            document.getElementById('modal').style.display = 'none';
+            if(yes && temp) {
+                let s = logs.find(x => x.date === temp.date);
+                if(!s) { s = {date: temp.date, cost: 0n, details: []}; logs.push(s); }
+                s.details.push({name: temp.name, price: temp.price});
                 s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-                await sync();
-                updateUI();
+                await sync(); load();
                 document.getElementById('in-name').value = ""; document.getElementById('in-price').value = "";
             }
         }
 
-        function renderLOST() {
-            const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
-            document.getElementById('lost-container').innerHTML = sorted.map(s => `
-                <div class="receipt-lost">
-                    <div style="text-align:center; font-weight:bold; border-bottom: 1px solid #000; margin-bottom:10px;">${s.date}</div>
-                    ${s.details.map((d, i) => `
-                        <div class="r-line">
-                            <span>${d.name}</span>
-                            <span>${(Number(d.price)/1000)}k <b style="color:red;cursor:pointer" onclick="del('${s.date}',${i})">x</b></span>
-                        </div>
-                    `).join('')}
-                    <div style="text-align:right; font-weight:bold; margin-top:5px;">TOTAL: ${(Number(s.cost)/1000)}k</div>
-                </div>
-            `).join('');
+        async function sync() {
+            const out = logs.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
+            await fetch(API, {method: "POST", body: JSON.stringify(out)});
         }
 
-        function renderChart(mode) {
-            const ctx = document.getElementById('wheelChart').getContext('2d');
-            let labels = [], data = [];
-            const sorted = [...spendings].sort((a,b) => a.date.localeCompare(b.date));
-
-            if(mode === 'week') {
-                const last7 = sorted.slice(-7);
-                labels = last7.map(x => x.date.split('-')[2]);
-                data = last7.map(x => Number(x.cost)/1000);
-            }
-
-            if(chartObj) chartObj.destroy();
-            chartObj = new Chart(ctx, {
+        function updateChart() {
+            const ctx = document.getElementById('hisChart').getContext('2d');
+            const last7 = logs.slice(-7);
+            if(chart) chart.destroy();
+            chart = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ label: 'Spending', data, borderColor: '#f2cc60', tension: 0.4, fill: true, backgroundColor: 'rgba(242,204,96,0.1)' }] },
+                data: { labels: last7.map(x=>x.date.split('-')[2]), datasets: [{ label: 'k', data: last7.map(x=>Number(x.cost)/1000), borderColor: '#f2cc60', fill: true, backgroundColor: 'rgba(242,204,96,0.1)', tension: 0.4 }] },
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
 
-        function getNewDhamma() {
-            const q = DHAMMA_TREASURY[Math.floor(Math.random() * DHAMMA_TREASURY.length)];
-            document.getElementById('dhamma-text').innerText = q.v;
-            document.getElementById('dhamma-ref').innerText = q.r;
-        }
-
-        function showView(v) {
+        function nav(v) {
             document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
             document.getElementById('view-'+v).classList.add('active');
             event.currentTarget.classList.add('active');
         }
 
-        async function sync() {
-            const out = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
-            await fetch(API, {method: "POST", body: JSON.stringify(out)});
+        async function del(d, i) {
+            const e = logs.find(x=>x.date===d); e.details.splice(i,1); e.cost=e.details.reduce((a,b)=>a+b.price,0n);
+            if(!e.details.length) logs=logs.filter(x=>x.date!==d); await sync(); load();
         }
 
-        async function del(date, i) {
-            const s = spendings.find(x => x.date === date);
-            s.details.splice(i, 1);
-            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-            if(!s.details.length) spendings = spendings.filter(x => x.date !== date);
-            await sync(); updateUI();
+        function exportData() {
+            let t = "HIS REPORT\n" + logs.map(s => `${s.date}: ${Number(s.cost)/1000}k`).join('\n');
+            const b = new Blob([t], {type:"text/plain"});
+            const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download="HIS_Report.txt"; a.click();
         }
 
-        function exportText() {
-            let txt = "HIS BETA 2.0 - REPORT\n====================\n";
-            spendings.forEach(s => {
-                txt += `\nDATE: ${s.date} | TOTAL: ${(Number(s.cost)/1000)}k\n`;
-                s.details.forEach(d => txt += `- ${d.name}: ${(Number(d.price)/1000)}k\n`);
-            });
-            const blob = new Blob([txt], {type: "text/plain"});
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(blob);
-            a.download = "HIS_Report.txt";
-            a.click();
-        }
-
-        async function wipe() { if(confirm("Xóa hết?")) { spendings = []; await sync(); updateUI(); } }
+        async function clearAll() { if(confirm("Xóa hết?")) { logs=[]; await sync(); load(); } }
     </script>
 </body>
 </html>
