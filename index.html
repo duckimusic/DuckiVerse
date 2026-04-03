@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.9.0 - Weekly Insights</title>
+    <title>SpendLog 12.9.1 - Shift & Clean</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -208,7 +208,7 @@
                     <div class="r-head">${dayName} ${d}/${m}/${y}</div>
                     ${s.details.map((item, idx) => `
                         <div class="r-row">
-                            <div><b>${item.note ? item.note.toUpperCase() : item.name}</b></div>
+                            <div><b>${item.name}</b></div>
                             <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
                         </div>
                     `).join('')}
@@ -239,13 +239,12 @@
             });
 
             let html = `<div style="margin-top:15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;">
-                        <b style="font-size:11px; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Weekly Mon-Sun Summary</b>`;
+                        <b style="font-size:11px; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Weekly Summary (Mon-Sun)</b>`;
             
             Object.keys(weeks).sort().reverse().forEach(wk => {
                 const start = new Date(wk + "T00:00:00");
                 const end = new Date(wk + "T00:00:00");
                 end.setDate(start.getDate() + 6);
-                
                 const range = `${start.getDate()}/${start.getMonth()+1} - ${end.getDate()}/${end.getMonth()+1}`;
                 html += `
                     <div class="weekly-row">
@@ -259,9 +258,8 @@
 
         async function importData() {
             let rawInput = document.getElementById('bulk-input').value;
-            rawInput = rawInput.replace("(5/1 - 11/1)", "(6/1 - 10/1)");
-
             if (!rawInput) return alert("Please paste data first!");
+            
             const lines = rawInput.split('\n');
             let count = 0;
             let anchorISO = null;
@@ -269,11 +267,17 @@
 
             lines.forEach(line => {
                 line = line.trim();
+                
+                // DATE OFFSET FORMULA: Shift back 1 day automatically
                 const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if (weekMatch) {
-                    const day = weekMatch[1].padStart(2, '0');
-                    const month = weekMatch[2].padStart(2, '0');
-                    anchorISO = `2026-${month}-${day}`; 
+                    let d = parseInt(weekMatch[1]);
+                    let m = parseInt(weekMatch[2]);
+                    let tempDate = new Date(2026, m - 1, d);
+                    tempDate.setDate(tempDate.getDate() - 1); // Shift back
+                    const finalD = String(tempDate.getDate()).padStart(2, '0');
+                    const finalM = String(tempDate.getMonth() + 1).padStart(2, '0');
+                    anchorISO = `2026-${finalM}-${finalD}`; 
                     return;
                 }
 
@@ -281,19 +285,28 @@
                 if (dayMatch && anchorISO) {
                     const content = dayMatch[2].trim();
                     if (content.toUpperCase() === 'X' || !content) return;
+
                     const dateObj = new Date(anchorISO + "T00:00:00");
                     dateObj.setDate(dateObj.getDate() + vnDays[dayMatch[1].toUpperCase()]);
                     const isoDate = dateObj.toISOString().split('T')[0];
+
                     const parts = content.split('+');
                     parts.forEach(part => {
                         const priceMatch = part.match(/(\d+k|\d+)/i);
                         const noteMatch = part.match(/\((.+?)\)/);
+                        
                         if (priceMatch) {
                             const price = toBigInt(priceMatch[1]);
-                            const note = noteMatch ? noteMatch[1].trim() : "";
+                            const noteStr = noteMatch ? noteMatch[1].trim() : "";
+                            let displayName = noteStr ? noteStr.toUpperCase() : "EXPENSE";
+
                             let entry = spendings.find(s => s.date === isoDate);
-                            if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
-                            entry.details.push({ name: note ? "PURCHASE" : "EXPENSE", price, note });
+                            if (!entry) { 
+                                entry = { date: isoDate, cost: 0n, details: [] }; 
+                                spendings.push(entry); 
+                            }
+                            
+                            entry.details.push({ name: displayName, price, note: "" });
                             entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
                             count++;
                         }
@@ -311,7 +324,7 @@
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
                 data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "Spending";
+                labelText = "Daily Spending";
             } else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
                 const filtered = allSorted.filter(s => { const d = new Date(s.date + "T00:00:00"); return d.getMonth() === selectedMonth; });
