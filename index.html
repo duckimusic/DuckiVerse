@@ -5,374 +5,278 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HIS Beta 2.0 - How I Spend</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         :root {
-            --bg: #0d1117; --card: rgba(22, 27, 34, 0.9); --accent: #f2cc60; 
+            --bg: #0a0e14; --card: #161b22; --accent: #f2cc60; 
             --text: #e6edf3; --subtext: #8b949e; --border: 1px solid #30363d;
-            --font: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             --danger: #f85149; --success: #3fb950;
         }
 
         body { 
-            background: var(--bg); color: var(--text); font-family: var(--font); 
-            margin: 0; padding-bottom: 80px; overflow-x: hidden;
+            background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; 
+            margin: 0; padding-bottom: 80px;
         }
 
         /* NAVIGATION */
         .nav-bar {
-            display: flex; position: sticky; top: 0; background: var(--card);
-            border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(10px);
+            display: flex; position: sticky; top: 0; background: rgba(22, 27, 34, 0.9);
+            border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(12px);
         }
         .nav-item {
-            flex: 1; padding: 15px 0; text-align: center; font-size: 11px;
-            font-weight: bold; cursor: pointer; color: var(--subtext); text-transform: uppercase;
+            flex: 1; padding: 16px 0; text-align: center; font-size: 10px;
+            font-weight: 800; cursor: pointer; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px;
         }
         .nav-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
 
-        .view { display: none; padding: 20px; max-width: 600px; margin: 0 auto; animation: fadeIn 0.4s; }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: slideUp 0.3s ease; }
         .view.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* WHEEL OF SPENDING (GRAPHS) */
-        .chart-box { background: var(--card); border: var(--border); border-radius: 12px; padding: 15px; margin-bottom: 20px; }
-        .chart-controls { display: flex; gap: 8px; margin-bottom: 12px; }
-        .btn-sm { flex: 1; padding: 8px; font-size: 10px; background: #21262d; border: var(--border); color: var(--text); border-radius: 6px; cursor: pointer; }
-        .btn-sm.active { background: var(--accent); color: #000; }
+        /* DHAMMA SECTION */
+        .dhamma-box {
+            background: linear-gradient(180deg, #1c2128 0%, #0a0e14 100%);
+            border: 1px solid rgba(242, 204, 96, 0.3); padding: 30px 20px;
+            border-radius: 20px; text-align: center; margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .quote-v { font-size: 17px; line-height: 1.6; color: var(--accent); font-weight: 500; margin-bottom: 15px; white-space: pre-line; }
+        .quote-ref { font-size: 11px; color: var(--subtext); text-transform: uppercase; letter-spacing: 2px; }
 
         /* L.O.S.T (LOGS) */
-        .input-group { background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 20px; }
-        input, select, textarea { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; }
-        .btn-main { width: 100%; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
-
-        .receipt { background: #fff; color: #000; padding: 15px; border-radius: 4px; margin-bottom: 12px; font-family: monospace; position: relative; }
-        .receipt-header { border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 10px; font-weight: bold; text-align: center; }
-
-        /* EIGHTFOLD (DHAMMA) */
-        .dhamma-card { background: linear-gradient(145deg, #1c2128, #0d1117); border: 1px solid var(--accent); padding: 25px; border-radius: 15px; text-align: center; margin-bottom: 20px; position: relative; }
-        .dhamma-quote { font-style: italic; font-size: 16px; line-height: 1.6; color: var(--accent); margin-bottom: 15px; }
-        .dhamma-ref { font-size: 12px; color: var(--subtext); }
-        
-        .eightfold-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 20px; }
-        .path-item { background: #21262d; padding: 15px; border-radius: 10px; text-align: center; font-size: 12px; border: var(--border); cursor: pointer; transition: 0.3s; }
-        .path-item:active { background: var(--accent); color: #000; }
+        .input-card { background: var(--card); padding: 20px; border-radius: 15px; border: var(--border); margin-bottom: 20px; }
+        input, textarea { width: 100%; padding: 14px; margin: 8px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 10px; box-sizing: border-box; font-size: 15px; }
+        .btn-save { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
 
         /* CONFIRM POPUP */
-        #confirm-overlay { 
+        #confirm-modal { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 2000; 
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 9999; 
         }
-        .confirm-box { background: var(--card); border: 1px solid var(--accent); padding: 30px; border-radius: 15px; text-align: center; width: 80%; max-width: 300px; }
-        .confirm-btns { display: flex; gap: 10px; margin-top: 20px; }
-        .btn-yes { flex: 1; background: var(--success); color: #fff; padding: 10px; border-radius: 5px; border: none; font-weight: bold; }
-        .btn-no { flex: 1; background: var(--danger); color: #fff; padding: 10px; border-radius: 5px; border: none; font-weight: bold; }
+        .modal-content { background: #1c2128; border: 1px solid var(--accent); padding: 30px; border-radius: 20px; text-align: center; width: 85%; }
+        .modal-btns { display: flex; gap: 12px; margin-top: 25px; }
+        .btn-y { flex: 1; background: var(--success); color: #fff; padding: 12px; border-radius: 8px; border: none; font-weight: bold; }
+        .btn-n { flex: 1; background: var(--danger); color: #fff; padding: 12px; border-radius: 8px; border: none; font-weight: bold; }
 
-        /* FOOTER STATS */
-        .footer-total { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 15px; text-align: center; font-weight: 900; letter-spacing: 1px; }
+        /* CHARTS */
+        .chart-container { background: var(--card); border: var(--border); border-radius: 15px; padding: 15px; margin-bottom: 20px; height: 300px; }
+        
+        .receipt-lost { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: 'Courier New', Courier, monospace; box-shadow: 5px 5px 0px var(--accent); }
+        .r-line { display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding: 5px 0; }
+
+        .footer-bar { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 18px; text-align: center; font-weight: 900; font-size: 16px; }
     </style>
 </head>
 <body>
 
-    <div id="confirm-overlay">
-        <div class="confirm-box">
-            <div style="font-size: 14px; margin-bottom: 10px;">XÁC NHẬN CHI TIÊU?</div>
-            <div id="confirm-detail" style="font-size: 12px; color: var(--subtext);"></div>
-            <div class="confirm-btns">
-                <button class="btn-yes" onclick="confirmSave(true)">ĐÚNG (YES)</button>
-                <button class="btn-no" onclick="confirmSave(false)">HỦY (NO)</button>
+    <div id="confirm-modal">
+        <div class="modal-content">
+            <div style="color: var(--accent); font-weight: bold; margin-bottom: 15px;">XÁC NHẬN CHÁNH NIỆM</div>
+            <div id="modal-desc" style="font-size: 14px; line-height: 1.5;"></div>
+            <div class="modal-btns">
+                <button class="btn-y" onclick="doSave(true)">LƯU (YES)</button>
+                <button class="btn-n" onclick="doSave(false)">HỦY (NO)</button>
             </div>
         </div>
     </div>
 
     <div class="nav-bar">
-        <div class="nav-item active" onclick="showView('home')">Wheel</div>
+        <div class="nav-item active" onclick="showView('wheel')">Wheel</div>
         <div class="nav-item" onclick="showView('lost')">L.O.S.T</div>
         <div class="nav-item" onclick="showView('eightfold')">Eightfold</div>
         <div class="nav-item" onclick="showView('settings')">Settings</div>
     </div>
 
-    <div id="view-home" class="view active">
-        <h3 style="color: var(--accent); margin-top: 0;">Wheel of Spending</h3>
-        <div class="chart-box">
-            <div class="chart-controls">
-                <button class="btn-sm active" id="btn-week" onclick="changeChart('week')">Tuần</button>
-                <button class="btn-sm" id="btn-month" onclick="changeChart('month')">Tháng</button>
-                <button class="btn-sm" id="btn-year" onclick="changeChart('year')">Năm</button>
-            </div>
-            <div style="height: 250px;"><canvas id="mainChart"></canvas></div>
+    <div id="view-wheel" class="view active">
+        <div class="chart-container"><canvas id="wheelChart"></canvas></div>
+        <div style="display: flex; gap: 10px;">
+            <button class="btn-save" style="font-size: 11px; padding: 10px;" onclick="renderChart('week')">Tuần</button>
+            <button class="btn-save" style="font-size: 11px; padding: 10px; background: #21262d; color: #fff;" onclick="renderChart('month')">Tháng</button>
         </div>
-        <div id="home-weekly-summary"></div>
     </div>
 
     <div id="view-lost" class="view">
-        <div class="input-group">
-            <input type="date" id="lost-date">
-            <input type="text" id="lost-name" placeholder="Tên khoản chi (vd: Ăn sáng)">
-            <input type="text" id="lost-price" placeholder="Giá tiền (vd: 50k hoặc 50000)">
-            <textarea id="lost-note" placeholder="Ghi chú (Note)"></textarea>
-            <button class="btn-main" onclick="triggerConfirm()">Save Receipt</button>
+        <div class="input-card">
+            <input type="date" id="in-date">
+            <input type="text" id="in-name" placeholder="Item Name">
+            <input type="text" id="in-price" placeholder="Price (k)">
+            <textarea id="in-note" placeholder="Note..."></textarea>
+            <button class="btn-save" onclick="askSave()">Save Receipt</button>
         </div>
-        <div id="lost-list"></div>
+        <div id="lost-container"></div>
     </div>
 
     <div id="view-eightfold" class="view">
-        <div class="dhamma-card">
-            <div style="font-size: 10px; color: var(--accent); letter-spacing: 2px; margin-bottom: 10px;">DAILY DHAMMAPADA</div>
-            <div class="dhamma-quote" id="quote-text">"Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo..."</div>
-            <div class="dhamma-ref" id="quote-ref">Kệ số 1</div>
-            <button class="btn-sm" style="margin-top: 15px; width: auto; padding: 8px 20px;" onclick="getRandomQuote()">Another Quote</button>
+        <div class="dhamma-box">
+            <div class="quote-v" id="dhamma-text">Đang tải Kinh Pháp Cú...</div>
+            <div class="quote-ref" id="dhamma-ref">Dhammapada</div>
+            <button class="btn-save" style="width: auto; padding: 10px 20px; font-size: 12px;" onclick="getNewDhamma()">Another Quote</button>
         </div>
 
-        <h4 style="text-align: center; color: var(--subtext); text-transform: uppercase; font-size: 12px;">Bát Chánh Đạo (The Eightfold Path)</h4>
-        <div class="eightfold-grid">
-            <div class="path-item" onclick="alert('Chánh Kiến: Hiểu biết đúng đắn về sự thật.')">Chánh Kiến</div>
-            <div class="path-item" onclick="alert('Chánh Tư Duy: Suy nghĩ không tham, không sân, không hại.')">Chánh Tư Duy</div>
-            <div class="path-item" onclick="alert('Chánh Ngữ: Lời nói chân thật, không thêu dệt.')">Chánh Ngữ</div>
-            <div class="path-item" onclick="alert('Chánh Nghiệp: Hành động thiện lành, không sát sinh.')">Chánh Nghiệp</div>
-            <div class="path-item" onclick="alert('Chánh Mạng: Nghề nghiệp chân chính, không hại người.')">Chánh Mạng</div>
-            <div class="path-item" onclick="alert('Chánh Tinh Tấn: Nỗ lực rèn luyện tâm tính.')">Chánh Tinh Tấn</div>
-            <div class="path-item" onclick="alert('Chánh Niệm: Luôn tỉnh giác trong hiện tại.')">Chánh Niệm</div>
-            <div class="path-item" onclick="alert('Chánh Định: Tâm tập trung, không xao lãng.')">Chánh Định</div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Kiến: Thấy rõ sự thật.')">Chánh Kiến</div>
+            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Tư Duy: Suy nghĩ thiện lành.')">Chánh Tư Duy</div>
+            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Ngữ: Lời nói chân thật.')">Chánh Ngữ</div>
+            <div style="background: #1c2128; padding: 15px; border-radius: 10px; font-size: 12px; border: 1px solid #333;" onclick="alert('Chánh Nghiệp: Hành động đúng đắn.')">Chánh Nghiệp</div>
         </div>
     </div>
 
     <div id="view-settings" class="view">
-        <div class="input-group">
-            <h4 style="margin-top:0">Export Data</h4>
-            <div style="display: flex; gap: 5px;">
-                <input type="date" id="export-start" style="flex:1">
-                <input type="date" id="export-end" style="flex:1">
-            </div>
-            <button class="btn-sm" style="width:100%; margin-bottom: 5px;" onclick="exportToText()">Export as Text</button>
-            <button class="btn-sm" style="width:100%;" onclick="alert('Tính năng PDF/Image yêu cầu thư viện mở rộng, đang giả lập...')">Export as Image</button>
+        <div class="input-card">
+            <h4>Export Data (PDF/Text)</h4>
+            <button class="btn-save" style="background: #238636; color: white;" onclick="exportText()">Download .TXT Report</button>
         </div>
-
-        <div class="input-group">
+        <div class="input-card">
             <h4>Bulk Import</h4>
-            <textarea id="bulk-data" rows="5" placeholder="Dán dữ liệu báo cáo vào đây..."></textarea>
-            <button class="btn-main" style="background: var(--success); color: #fff;" onclick="bulkImport()">Import Now</button>
+            <textarea id="bulk-in" rows="4" placeholder="Paste report here..."></textarea>
+            <button class="btn-save" onclick="handleBulk()">Import</button>
         </div>
-
-        <button class="btn-main" style="background: transparent; border: 1px solid var(--danger); color: var(--danger);" onclick="resetData()">Reset All Data</button>
+        <button class="btn-save" style="background: transparent; color: var(--danger); border: 1px solid var(--danger);" onclick="wipe()">Reset All Data</button>
     </div>
 
-    <div class="footer-total">HIS TOTAL: <span id="grand-total">0k</span></div>
+    <div class="footer-bar">HIS TOTAL: <span id="total-val">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
-        let myChart = null;
-        let pendingEntry = null;
+        let chartObj = null;
+        let tempEntry = null;
 
-        // Dữ liệu mẫu Pháp Cú (Trong thực tế sẽ fetch từ kinhphapcu.vn hoặc nạp full bộ)
-        const dhammaQuotes = [
-            { text: "Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo. Nếu với tâm ô nhiễm, Nói năng hay hành động, Khổ não bước theo sau, Như xe chân vật kéo.", ref: "Pháp Cú - Kệ số 1" },
-            { text: "Tâm dẫn đầu các pháp, Tâm làm chủ, tâm tạo. Nếu với tâm thanh tịnh, Nói năng hay hành động, An lạc bước theo sau, Như bóng chẳng rời hình.", ref: "Pháp Cú - Kệ số 2" },
-            { text: "Sống trong tài sản lớn, Không biết đủ, tham cầu, Chính tham làm hại mình, Như mọt ăn gỗ mục.", ref: "Pháp Cú - Tinh thần tiết độ" },
-            { text: "Ít muốn và biết đủ, Là tài sản lớn nhất. Tự tin là bạn tốt, Niết bàn lạc tối thượng.", ref: "Pháp Cú - Kệ số 204" }
+        // KHO DỮ LIỆU KINH PHÁP CÚ (Trích lọc từ kinhphapcu.vn)
+        const DHAMMA_TREASURY = [
+            { v: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm ô nhiễm,\nKhổ não bước theo sau.", r: "Kệ số 1 - Phẩm Song Yếu" },
+            { v: "Tâm dẫn đầu các pháp,\nTâm làm chủ, tâm tạo.\nNếu với tâm thanh tịnh,\nAn lạc bước theo sau.", r: "Kệ số 2 - Phẩm Song Yếu" },
+            { v: "Như mái nhà vụng lợp,\nMưa liền xâm nhập vào.\nCũng vậy tâm không tu,\nTham dục liền xâm nhập.", r: "Kệ số 13 - Phẩm Song Yếu" },
+            { v: "Người hăng hái, chánh niệm,\nTrong sạch, biết tự chế.\nSống thuận theo Chánh pháp,\nDanh tiếng ngày càng tăng.", r: "Kệ số 24 - Phẩm Tỉnh Giác" },
+            { v: "Tâm hoảng hốt, dao động,\nKhó hộ trì, khó nhiếp.\nNgười trí làm tâm thẳng,\nNhư thợ tên nắn tên.", r: "Kệ số 33 - Phẩm Tâm" },
+            { v: "Ít muốn và biết đủ,\nLà tài sản lớn nhất.\nTự tin là bạn tốt,\nNiết bàn lạc tối thượng.", r: "Kệ số 204 - Phẩm An Lạc" },
+            { v: "Dầu tại bãi chiến trường,\nThắng hàng ngàn quân địch.\nTự thắng mình tốt nhất,\nChiến thắng ấy tối thượng.", r: "Kệ số 103 - Phẩm Ngàn" },
+            { v: "Không làm mọi điều ác,\nThành tựu các hạnh lành.\nGiữ tâm ý trong sạch,\nLà lời chư Phật dạy.", r: "Kệ số 183 - Phẩm Phật" }
         ];
 
         window.onload = () => {
-            document.getElementById('lost-date').value = new Date().toISOString().split('T')[0];
-            getRandomQuote();
-            loadData();
+            document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
+            getNewDhamma();
+            fetchData();
         };
 
-        async function loadData() {
+        async function fetchData() {
             try {
-                const res = await fetch(API);
-                const data = await res.json() || [];
-                spendings = data.map(s => ({ 
-                    ...s, 
-                    cost: BigInt(s.cost || 0), 
-                    details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) 
-                }));
-                render();
-            } catch(e) { console.error("Load failed", e); }
+                const r = await fetch(API);
+                const d = await r.json() || [];
+                spendings = d.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(i => ({ ...i, price: BigInt(i.price) })) }));
+                updateUI();
+            } catch(e) { console.log(e); }
         }
 
-        function render() {
+        function updateUI() {
             renderLOST();
-            updateChart('week');
-            updateGrandTotal();
+            renderChart('week');
+            const grand = spendings.reduce((a, b) => a + b.cost, 0n);
+            document.getElementById('total-val').innerText = (Number(grand)/1000).toLocaleString() + "k";
         }
 
-        function updateGrandTotal() {
-            const total = spendings.reduce((acc, s) => acc + s.cost, 0n);
-            document.getElementById('grand-total').innerText = formatK(total);
-        }
-
-        function formatK(n) {
-            let val = Math.floor(Number(n)/1000);
-            return val.toLocaleString() + "k";
-        }
-
-        function toBigInt(val) {
-            let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
-            return BigInt(clean || 0);
-        }
-
-        // L.O.S.T FUNCTIONS
-        function triggerConfirm() {
-            const name = document.getElementById('lost-name').value;
-            const price = document.getElementById('lost-price').value;
-            if(!name || !price) return alert("Vui lòng nhập đủ thông tin!");
-            
-            pendingEntry = {
-                date: document.getElementById('lost-date').value,
+        function askSave() {
+            const name = document.getElementById('in-name').value;
+            const price = document.getElementById('in-price').value;
+            if(!name || !price) return;
+            tempEntry = {
+                date: document.getElementById('in-date').value,
                 name: name.toUpperCase(),
-                price: toBigInt(price),
-                note: document.getElementById('lost-note').value
+                price: BigInt(price.replace('k','')) * 1000n,
+                note: document.getElementById('in-note').value
             };
-            
-            document.getElementById('confirm-detail').innerText = `${pendingEntry.name}: ${formatK(pendingEntry.price)}`;
-            document.getElementById('confirm-overlay').style.display = 'flex';
+            document.getElementById('modal-desc').innerText = `Bạn có chắc muốn tiêu ${price}k cho ${name}?`;
+            document.getElementById('confirm-modal').style.display = 'flex';
         }
 
-        async function confirmSave(yes) {
-            document.getElementById('confirm-overlay').style.display = 'none';
-            if(yes && pendingEntry) {
-                let entry = spendings.find(s => s.date === pendingEntry.date);
-                if(!entry) {
-                    entry = { date: pendingEntry.date, cost: 0n, details: [] };
-                    spendings.push(entry);
-                }
-                entry.details.push({ name: pendingEntry.name, price: pendingEntry.price, note: pendingEntry.note });
-                entry.cost = entry.details.reduce((a, b) => a + b.price, 0n);
-                
+        async function doSave(yes) {
+            document.getElementById('confirm-modal').style.display = 'none';
+            if(yes && tempEntry) {
+                let s = spendings.find(x => x.date === tempEntry.date);
+                if(!s) { s = {date: tempEntry.date, cost: 0n, details: []}; spendings.push(s); }
+                s.details.push({name: tempEntry.name, price: tempEntry.price, note: tempEntry.note});
+                s.cost = s.details.reduce((a,b) => a+b.price, 0n);
                 await sync();
-                render();
-                document.getElementById('lost-name').value = "";
-                document.getElementById('lost-price').value = "";
-                document.getElementById('lost-note').value = "";
+                updateUI();
+                document.getElementById('in-name').value = ""; document.getElementById('in-price').value = "";
             }
-            pendingEntry = null;
         }
 
         function renderLOST() {
             const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
-            document.getElementById('lost-list').innerHTML = sorted.map(s => `
-                <div class="receipt">
-                    <div class="receipt-header">${s.date.split('-').reverse().join('/')}</div>
+            document.getElementById('lost-container').innerHTML = sorted.map(s => `
+                <div class="receipt-lost">
+                    <div style="text-align:center; font-weight:bold; border-bottom: 1px solid #000; margin-bottom:10px;">${s.date}</div>
                     ${s.details.map((d, i) => `
-                        <div style="display:flex; justify-content:space-between; margin:4px 0;">
-                            <span>${d.name} ${d.note ? `<small style="color:gray">(${d.note})</small>` : ''}</span>
-                            <b>${formatK(d.price)} <span style="color:red; cursor:pointer" onclick="deleteItem('${s.date}', ${i})">×</span></b>
+                        <div class="r-line">
+                            <span>${d.name}</span>
+                            <span>${(Number(d.price)/1000)}k <b style="color:red;cursor:pointer" onclick="del('${s.date}',${i})">x</b></span>
                         </div>
                     `).join('')}
-                    <div style="border-top:1px solid #000; margin-top:5px; text-align:right; font-weight:bold;">
-                        TOTAL: ${formatK(s.cost)}
-                    </div>
+                    <div style="text-align:right; font-weight:bold; margin-top:5px;">TOTAL: ${(Number(s.cost)/1000)}k</div>
                 </div>
             `).join('');
         }
 
-        // CHART LOGIC
-        function updateChart(mode) {
-            const ctx = document.getElementById('mainChart').getContext('2d');
+        function renderChart(mode) {
+            const ctx = document.getElementById('wheelChart').getContext('2d');
             let labels = [], data = [];
             const sorted = [...spendings].sort((a,b) => a.date.localeCompare(b.date));
 
             if(mode === 'week') {
-                // Lấy 7 ngày gần nhất hoặc tuần hiện tại
                 const last7 = sorted.slice(-7);
-                labels = last7.map(s => s.date.split('-')[2]);
-                data = last7.map(s => Number(s.cost)/1000);
-            } else if(mode === 'month') {
-                // Gom nhóm theo tháng
-                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labels = months;
-                data = new Array(12).fill(0);
-                sorted.forEach(s => {
-                    const m = new Date(s.date).getMonth();
-                    data[m] += Number(s.cost)/1000;
-                });
+                labels = last7.map(x => x.date.split('-')[2]);
+                data = last7.map(x => Number(x.cost)/1000);
             }
 
-            if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
+            if(chartObj) chartObj.destroy();
+            chartObj = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Spending (k)',
-                        data,
-                        borderColor: '#f2cc60',
-                        backgroundColor: 'rgba(242, 204, 96, 0.1)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
+                data: { labels, datasets: [{ label: 'Spending', data, borderColor: '#f2cc60', tension: 0.4, fill: true, backgroundColor: 'rgba(242,204,96,0.1)' }] },
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
         }
 
-        // UTILS
-        function getRandomQuote() {
-            const q = dhammaQuotes[Math.floor(Math.random() * dhammaQuotes.length)];
-            document.getElementById('quote-text').innerText = `"${q.text}"`;
-            document.getElementById('quote-ref').innerText = q.ref;
+        function getNewDhamma() {
+            const q = DHAMMA_TREASURY[Math.floor(Math.random() * DHAMMA_TREASURY.length)];
+            document.getElementById('dhamma-text').innerText = q.v;
+            document.getElementById('dhamma-ref').innerText = q.r;
         }
 
         function showView(v) {
-            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById(`view-${v}`).classList.add('active');
+            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
+            document.getElementById('view-'+v).classList.add('active');
             event.currentTarget.classList.add('active');
         }
 
         async function sync() {
-            const storageData = spendings.map(s => ({ 
-                ...s, 
-                cost: s.cost.toString(), 
-                details: s.details.map(d => ({ ...d, price: d.price.toString() })) 
-            }));
-            await fetch(API, { method: "POST", body: JSON.stringify(storageData) });
+            const out = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
+            await fetch(API, {method: "POST", body: JSON.stringify(out)});
         }
 
-        async function deleteItem(date, idx) {
-            const entry = spendings.find(s => s.date === date);
-            if(entry) {
-                entry.details.splice(idx, 1);
-                entry.cost = entry.details.reduce((a, b) => a + b.price, 0n);
-                if(entry.details.length === 0) spendings = spendings.filter(s => s.date !== date);
-                await sync();
-                render();
-            }
+        async function del(date, i) {
+            const s = spendings.find(x => x.date === date);
+            s.details.splice(i, 1);
+            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+            if(!s.details.length) spendings = spendings.filter(x => x.date !== date);
+            await sync(); updateUI();
         }
 
-        function exportToText() {
-            const start = document.getElementById('export-start').value;
-            const end = document.getElementById('export-end').value;
-            if(!start || !end) return alert("Chọn khoảng ngày!");
-            
-            let report = `HIS BETA 2.0 - REPORT (${start} to ${end})\n`;
-            report += `----------------------------------\n`;
-            spendings.filter(s => s.date >= start && s.date <= end).forEach(s => {
-                report += `${s.date}: ${formatK(s.cost)}\n`;
-                s.details.forEach(d => report += ` - ${d.name}: ${formatK(d.price)}\n`);
+        function exportText() {
+            let txt = "HIS BETA 2.0 - REPORT\n====================\n";
+            spendings.forEach(s => {
+                txt += `\nDATE: ${s.date} | TOTAL: ${(Number(s.cost)/1000)}k\n`;
+                s.details.forEach(d => txt += `- ${d.name}: ${(Number(d.price)/1000)}k\n`);
             });
-            
-            const blob = new Blob([report], {type: "text/plain"});
+            const blob = new Blob([txt], {type: "text/plain"});
             const a = document.createElement("a");
             a.href = URL.createObjectURL(blob);
-            a.download = `HIS_Report_${start}_${end}.txt`;
+            a.download = "HIS_Report.txt";
             a.click();
         }
 
-        function changeChart(type) {
-            document.querySelectorAll('.btn-sm').forEach(b => b.classList.remove('active'));
-            document.getElementById(`btn-${type}`).classList.add('active');
-            updateChart(type);
-        }
-        
-        async function resetData() {
-            if(confirm("Xóa toàn bộ dữ liệu? Thao tác này không thể hoàn tác!")) {
-                spendings = [];
-                await sync();
-                render();
-            }
-        }
+        async function wipe() { if(confirm("Xóa hết?")) { spendings = []; await sync(); updateUI(); } }
     </script>
 </body>
 </html>
