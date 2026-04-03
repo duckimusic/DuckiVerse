@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.4 - Clean Logic</title>
+    <title>SpendLog 12.8.5 - Final Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -14,6 +14,32 @@
             --receipt-bg: #fff; --receipt-text: #111; --bg-img: none;
         }
 
+        /* --- SPLASH SCREEN --- */
+        #splash-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0d1117; z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
+        }
+        .splash-logo {
+            width: 80px; height: 80px; border: 4px solid var(--accent);
+            border-radius: 20%; position: relative; animation: pulse 2s infinite ease-in-out;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 32px; color: var(--accent);
+        }
+        .splash-bar {
+            width: 150px; height: 2px; background: rgba(255,255,255,0.1);
+            margin-top: 30px; position: relative; overflow: hidden;
+        }
+        .splash-progress {
+            width: 0%; height: 100%; background: var(--accent);
+            position: absolute; left: 0; top: 0; animation: load 2s forwards cubic-bezier(0.42, 0, 0.58, 1);
+        }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes load { 0% { width: 0%; } 100% { width: 100%; } }
+        .hide-splash { opacity: 0; visibility: hidden; }
+
+        /* --- MAIN UI --- */
         body { 
             background: var(--bg); background-image: var(--bg-img);
             background-size: cover; background-position: center; background-attachment: fixed;
@@ -68,6 +94,12 @@
     </style>
 </head>
 <body>
+
+    <div id="splash-screen">
+        <div class="splash-logo">$</div>
+        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">SPENDLOG 12.8</div>
+        <div class="splash-bar"><div class="splash-progress"></div></div>
+    </div>
 
     <div id="scanlines"></div>
 
@@ -149,6 +181,13 @@
         let bills = JSON.parse(localStorage.getItem('spendlog_bills')) || [];
         let myChart = null;
 
+        // Splash Logic
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('hide-splash');
+            }, 2200);
+        });
+
         function formatK(n) {
             let val = Math.floor(Number(n)/1000);
             return val === 0 ? "0k" : new Intl.NumberFormat('en-US').format(val) + "k";
@@ -167,10 +206,12 @@
         }
 
         async function load() {
-            const res = await fetch(API);
-            const data = await res.json() || [];
-            spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" })) }));
-            render();
+            try {
+                const res = await fetch(API);
+                const data = await res.json() || [];
+                spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" })) }));
+                render();
+            } catch(e) { console.error("Load failed", e); }
         }
 
         function render() {
@@ -239,7 +280,7 @@
                     });
                 }
             });
-            if (count > 0) { await sync(); render(); alert(`Imported ${count} items.`); }
+            if (count > 0) { await sync(); render(); alert(`Successfully imported ${count} items.`); }
         }
 
         function updateChart(range = '14d') {
