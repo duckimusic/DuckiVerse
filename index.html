@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.7 - Strict Monday</title>
+    <title>SpendLog 12.8.8 - Strict Sync</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -106,9 +106,9 @@
     <div id="view-daily" class="view active">
         <div class="input-group">
             <input type="date" id="date-input">
-            <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
-            <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
-            <input type="text" id="note-input" placeholder="Ghi chú (Tùy chọn)">
+            <input type="text" id="item-input" placeholder="Name (Gas + Coffee)">
+            <input type="text" id="cost-input" placeholder="Price (50k + 25k)">
+            <input type="text" id="note-input" placeholder="Note (Optional)">
             <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="daily-list"></div>
@@ -116,13 +116,13 @@
 
     <div id="view-analytics" class="view">
         <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
-            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">RECENT</button>
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
             <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 42px;">
-                <option value="0">January</option><option value="1">February</option><option value="2">March</option>
-                <option value="3" selected>April</option><option value="4">May</option><option value="5">June</option>
-                <option value="6">July</option><option value="7">August</option><option value="8">September</option>
-                <option value="9">October</option><option value="10">November</option><option value="11">December</option>
+                <option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option>
+                <option value="3" selected>Apr</option><option value="4">May</option><option value="5">Jun</option>
+                <option value="6">Jul</option><option value="7">Aug</option><option value="8">Sep</option>
+                <option value="9">Oct</option><option value="10">Nov</option><option value="11">Dec</option>
             </select>
         </div>
         <div class="chart-container"><canvas id="spendingChart"></canvas></div>
@@ -133,14 +133,14 @@
         <div class="input-group">
             <input type="text" id="bill-name" placeholder="Bill Name">
             <input type="text" id="bill-amount" placeholder="Amount (e.g. 1.5M)">
-            <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
+            <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD FIXED BILL</button>
         </div>
         <div id="bill-list"></div>
     </div>
 
     <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Atmosphere</label>
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Theme</label>
             <select onchange="applyAtmosphere(this.value)" style="margin-top:10px">
                 <option value="default">Default Matrix</option>
                 <option value="retro">80s Retro</option>
@@ -150,7 +150,7 @@
             </select>
         </div>
         <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="8" placeholder="Paste bulk report here..." style="margin-top:12px; font-size: 11px;"></textarea>
+        <textarea id="bulk-input" rows="8" placeholder="Paste report here..." style="margin-top:12px; font-size: 11px;"></textarea>
         <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
@@ -223,27 +223,27 @@
             if (!input) return alert("Dán dữ liệu vào trước!");
             const lines = input.split('\n');
             let count = 0;
-            let currentStartDate = null;
+            let anchorISO = null;
             const vnDays = { "T2": 0, "T3": 1, "T4": 2, "T5": 3, "T6": 4, "T7": 5, "CN": 6 };
 
             lines.forEach(line => {
                 line = line.trim();
                 const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if (weekMatch) {
-                    const [_, day, month] = weekMatch;
-                    currentStartDate = new Date(2026, parseInt(month)-1, parseInt(day));
+                    const day = weekMatch[1].padStart(2, '0');
+                    const month = weekMatch[2].padStart(2, '0');
+                    anchorISO = `2026-${month}-${day}`; // Forced Monday anchor
                     return;
                 }
 
                 const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
-                if (dayMatch && currentStartDate) {
+                if (dayMatch && anchorISO) {
                     const content = dayMatch[2].trim();
                     if (content.toUpperCase() === 'X' || !content) return;
 
-                    const dayOffset = vnDays[dayMatch[1].toUpperCase()];
-                    const entryDate = new Date(currentStartDate);
-                    entryDate.setDate(currentStartDate.getDate() + dayOffset);
-                    const isoDate = entryDate.toISOString().split('T')[0];
+                    const dateObj = new Date(anchorISO + "T00:00:00");
+                    dateObj.setDate(dateObj.getDate() + vnDays[dayMatch[1].toUpperCase()]);
+                    const isoDate = dateObj.toISOString().split('T')[0];
 
                     const parts = content.split('+');
                     parts.forEach(part => {
@@ -263,7 +263,7 @@
                     });
                 }
             });
-            if (count > 0) { await sync(); render(); alert(`Imported ${count} items.`); }
+            if (count > 0) { await sync(); render(); alert(`Synced ${count} items.`); }
         }
 
         function updateChart(range = '14d') {
@@ -287,7 +287,7 @@
                 data = new Array(12).fill(0);
                 allSorted.forEach(s => { if (new Date(s.date + "T00:00:00").getFullYear() === 2026) data[new Date(s.date + "T00:00:00").getMonth()] += Number(s.cost) / 1000; });
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Yearly";
+                labelText = "Yearly Trend";
             }
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
