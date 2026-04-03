@@ -3,56 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.5 - Final Edition</title>
+    <title>SpendLog 12.6 - Immersive</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
-            --bg: #0d1117; --card: #161b22; --accent: #58a6ff; 
+            --bg: #0d1117; --card: rgba(22, 27, 34, 0.85); --accent: #58a6ff; 
             --green: #3fb950; --gold: #f2cc60; --danger: #f85149;
             --text: #e6edf3; --font: -apple-system, sans-serif;
             --border: 1px solid #30363d; --glow: none; --fx: none;
-            --receipt-bg: #fff; --receipt-text: #111;
+            --receipt-bg: #fff; --receipt-text: #111; --bg-img: none;
         }
 
-        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; transition: 0.5s; overflow-x: hidden; }
+        body { 
+            background: var(--bg); background-image: var(--bg-img);
+            background-size: cover; background-position: center; background-attachment: fixed;
+            color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; 
+            transition: 0.8s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden; 
+        }
         
         #scanlines { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; z-index: 9999; opacity: 0.12; display: var(--fx);
+            pointer-events: none; z-index: 9999; opacity: 0.15; display: var(--fx);
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            background-size: 100% 2px, 3px 100%;
+            background-size: 100% 3px, 3px 100%;
         }
 
-        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--card); border-bottom: var(--border); z-index: 1000; box-shadow: var(--glow); }
-        .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
+        .nav-tabs { 
+            display: flex; position: sticky; top: 0; background: var(--card); 
+            border-bottom: var(--border); z-index: 1000; box-shadow: var(--glow);
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+        }
+        .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); text-shadow: var(--glow); }
         
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--filter, none); }
         .view.active { display: block; }
 
-        .receipt { background: var(--receipt-bg); color: var(--receipt-text); padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow); border: var(--border); }
+        .receipt { 
+            background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; 
+            margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow, 0 4px 10px rgba(0,0,0,0.3)); 
+            border: var(--border); transform: var(--receipt-tilt, none); transition: 0.3s;
+        }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
-        .r-note { font-size: 10px; opacity: 0.7; font-style: italic; display: block; margin-top: -2px; }
+        .r-note { font-size: 10px; opacity: 0.7; font-style: italic; display: block; }
         .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
-        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 10px; font-size: 18px; }
+        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 10px; }
 
-        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: var(--border); margin-bottom: 15px; box-shadow: var(--glow); }
-        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: rgba(0,0,0,0.3); border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
-        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: var(--glow); transition: 0.2s; }
+        .input-group { 
+            background: var(--card); padding: 18px; border-radius: 12px; border: var(--border); 
+            margin-bottom: 15px; box-shadow: var(--glow); backdrop-filter: blur(8px);
+        }
+        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: rgba(0,0,0,0.4); border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: var(--glow); transition: 0.2s; text-transform: uppercase; }
 
-        /* Calculator */
-        #calc-toggle { position: fixed; right: 20px; bottom: 80px; background: var(--gold); color: #000; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        #calc-panel { position: fixed; right: -320px; top: 0; width: 300px; height: 100%; background: #000; border-left: var(--border); z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
+        /* Calculator Overlay */
+        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); border-left: var(--border); z-index: 2001; transition: 0.4s; padding: 25px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 70px; background: #111; color: var(--green); text-align: right; font-size: 28px; padding: 15px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
+        .calc-screen { width: 100%; height: 80px; background: #111; color: var(--green); text-align: right; font-size: 32px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .calc-btn { background: #222; color: #fff; padding: 18px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; font-size: 18px; border: 1px solid #333; }
-        .calc-btn.active { background: var(--accent); }
+        .calc-btn.active { background: var(--accent); border-color: #fff; }
 
-        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 250px; margin-bottom: 15px; }
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; box-shadow: var(--glow); }
+        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(8px); }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 18px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; box-shadow: var(--glow); backdrop-filter: blur(5px); }
     </style>
 </head>
 <body>
@@ -79,13 +95,13 @@
 
     <div id="view-analytics" class="view">
         <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px;">
-            <button class="btn" style="flex: 1; padding: 8px; font-size: 10px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
-            <button class="btn" style="flex: 1; padding: 8px; font-size: 10px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
-            <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 35px; font-size: 12px;">
-                <option value="0">January</option> <option value="1">February</option> <option value="2" selected>March</option>
-                <option value="3">April</option> <option value="4">May</option> <option value="5">June</option>
-                <option value="6">July</option> <option value="7">August</option> <option value="8">September</option>
-                <option value="9">October</option> <option value="10">November</option> <option value="11">December</option>
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
+            <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 40px;">
+                <option value="0">January</option><option value="1">February</option><option value="2" selected>March</option>
+                <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                <option value="9">October</option><option value="10">November</option><option value="11">December</option>
             </select>
         </div>
         <div class="chart-container"><canvas id="spendingChart"></canvas></div>
@@ -95,7 +111,7 @@
     <div id="view-bills" class="view">
         <div class="input-group">
             <input type="text" id="bill-name" placeholder="Bill Name">
-            <input type="text" id="bill-amount" placeholder="Amount (e.g. 500k)">
+            <input type="text" id="bill-amount" placeholder="Amount (e.g. 1M)">
             <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
         </div>
         <div id="bill-list"></div>
@@ -103,21 +119,21 @@
 
     <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 10px; color: #8b949e;">ATMOSPHERE OVERRIDE</label>
-            <select onchange="applyAtmosphere(this.value)">
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold;">ATMOSPHERE OVERRIDE</label>
+            <select onchange="applyAtmosphere(this.value)" style="margin-top:10px">
                 <option value="default">Default Matrix</option>
                 <option value="retro">80s Retro (Scanlines)</option>
-                <option value="cyber">Cyberpunk (Neon)</option>
-                <option value="steam">Steampunk (Brass)</option>
-                <option value="horror">Uncanny (Backrooms)</option>
+                <option value="cyber">Cyberpunk (Neon Night)</option>
+                <option value="steam">Steampunk (Brass & Oil)</option>
+                <option value="horror">Uncanny (The Backrooms)</option>
             </select>
         </div>
         <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="3" placeholder="Paste bulk report here..."></textarea>
-        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
+        <textarea id="bulk-input" rows="3" placeholder="Paste bulk report..." style="margin-top:10px"></textarea>
+        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
-    <div id="calc-toggle" onclick="toggleCalc()">±</div>
+    <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
     <div id="calc-panel">
         <div class="calc-screen" id="calc-display">0</div>
         <div class="calc-grid">
@@ -149,10 +165,7 @@
         }
 
         async function sync() {
-            const storageData = spendings.map(s => ({
-                ...s, cost: s.cost.toString(),
-                details: s.details.map(d => ({ ...d, price: d.price.toString() }))
-            }));
+            const storageData = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
             await fetch(API, {method:"POST", body:JSON.stringify(storageData)});
             localStorage.setItem('spendlog_bills', JSON.stringify(bills));
         }
@@ -160,10 +173,7 @@
         async function load() {
             const res = await fetch(API);
             const data = await res.json() || [];
-            spendings = data.map(s => ({
-                ...s, cost: BigInt(s.cost || 0),
-                details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" }))
-            }));
+            spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" })) }));
             render();
         }
 
@@ -174,16 +184,7 @@
                 grandTotal += s.cost;
                 const [y, m, d] = s.date.split('-');
                 const dayName = new Date(y, m-1, d).toLocaleDateString('en-US', {weekday:'short'});
-                return `
-                <div class="receipt">
-                    <div class="r-head">${dayName} ${d}/${m}/${y}</div>
-                    ${s.details.map((item, idx) => `
-                        <div class="r-row">
-                            <div><b>${item.name}</b>${item.note ? `<span class="r-note">${item.note}</span>` : ''}</div>
-                            <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
-                        </div>`).join('')}
-                    <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
-                </div>`;
+                return `<div class="receipt"><div class="r-head">${dayName} ${d}/${m}/${y}</div>${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note">${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:10px">×</span></b></div></div>`).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
@@ -199,65 +200,54 @@
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
                 data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "Last 14 Records";
+                labelText = "Recent 14 Logs";
             } 
             else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
                 const currentYear = new Date().getFullYear();
-                const filtered = allSorted.filter(s => {
-                    const d = new Date(s.date);
-                    return d.getMonth() === selectedMonth && d.getFullYear() === currentYear;
-                });
+                const filtered = allSorted.filter(s => { const d = new Date(s.date); return d.getMonth() === selectedMonth && d.getFullYear() === currentYear; });
                 const daysInMonth = new Date(currentYear, selectedMonth + 1, 0).getDate();
                 labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
                 data = new Array(daysInMonth).fill(0);
-                filtered.forEach(s => {
-                    const dayNum = parseInt(s.date.split('-')[2]);
-                    data[dayNum - 1] += Number(s.cost) / 1000;
-                });
-                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                labelText = monthNames[selectedMonth] + " Trend";
+                filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
+                labelText = "Monthly Trend";
             } 
             else if (range === 'year') {
                 data = new Array(12).fill(0);
                 allSorted.forEach(s => { if (new Date(s.date).getFullYear() === new Date().getFullYear()) data[new Date(s.date).getMonth()] += Number(s.cost) / 1000; });
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Yearly View";
+                labelText = "Yearly Distribution";
             }
 
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels, datasets: [{ label: labelText, data, borderColor: '#58a6ff', tension: 0.2, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]},
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
+                data: { labels, datasets: [{ label: labelText, data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)', pointRadius: range==='month'?1:4 }]},
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { grid: { display: false } } } }
             });
             const sum = data.reduce((a, b) => a + b, 0);
-            document.getElementById('stats-summary').innerHTML = `Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b> | Avg: <b>${data.filter(v => v > 0).length ? (sum / data.filter(v => v > 0).length).toFixed(1) : 0}k</b>`;
-        }
-
-        async function saveEntry() {
-            const d = document.getElementById('date-input').value;
-            if(!d) return;
-            const names = document.getElementById('item-input').value.split('+');
-            const costs = document.getElementById('cost-input').value.split('+');
-            const note = document.getElementById('note-input').value;
-            let entry = spendings.find(s => s.date === d);
-            if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note}));
-            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
-            await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = ""; document.getElementById('note-input').value = "";
+            document.getElementById('stats-summary').innerHTML = `Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b> | Avg: <b>${data.filter(v=>v>0).length ? (sum/data.filter(v=>v>0).length).toFixed(1) : 0}k</b>`;
         }
 
         function applyAtmosphere(t) {
             const r = document.documentElement.style;
             const fx = document.getElementById('scanlines');
-            fx.style.setProperty('--fx', t === 'retro' ? 'block' : 'none');
-            r.setProperty('--font', 'sans-serif'); r.setProperty('--glow', 'none'); r.setProperty('--filter', 'none'); r.setProperty('--receipt-bg', '#fff'); r.setProperty('--receipt-text', '#111');
-            if(t==='retro'){ r.setProperty('--bg','#2b033d'); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 10px #ff00ff'); }
-            if(t==='cyber'){ r.setProperty('--bg','#000'); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#f0f'); r.setProperty('--border','1px solid #00f3ff'); r.setProperty('--glow','0 0 15px #00f3ff'); }
-            if(t==='steam'){ r.setProperty('--bg','#2c1e16'); r.setProperty('--accent','#d4af37'); r.setProperty('--receipt-bg','#d2b48c'); r.setProperty('--font','serif'); }
-            if(t==='horror'){ r.setProperty('--bg','#1a1a10'); r.setProperty('--filter','sepia(0.6) contrast(1.2)'); r.setProperty('--font','monospace'); }
+            fx.style.setProperty('--fx', t==='retro'?'block':'none');
+            r.setProperty('--font','sans-serif'); r.setProperty('--glow','none'); r.setProperty('--filter','none'); r.setProperty('--receipt-tilt','none'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111');
+            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=1000')"); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 10px #ff00ff'); }
+            if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=1000')"); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.8)'); r.setProperty('--glow','0 0 15px #00f3ff'); }
+            if(t==='steam'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=1000')"); r.setProperty('--accent','#d4af37'); r.setProperty('--receipt-bg','#d2b48c'); r.setProperty('--card','rgba(44,30,22,0.9)'); }
+            if(t==='horror'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=1000')"); r.setProperty('--filter','sepia(0.5) contrast(1.2)'); r.setProperty('--receipt-tilt','rotate(-1deg)'); r.setProperty('--font','monospace'); }
+        }
+
+        async function saveEntry() {
+            const d = document.getElementById('date-input').value; if(!d) return;
+            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+'), note = document.getElementById('note-input').value;
+            let entry = spendings.find(s => s.date === d); if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
+            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note}));
+            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
+            await sync(); render();
+            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = ""; document.getElementById('note-input').value = "";
         }
 
         let calcVal = "";
