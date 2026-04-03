@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8 - High Fidelity</title>
+    <title>SpendLog 12.8.1 - Sync Patch</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -65,7 +65,7 @@
         .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; border: 1px solid #333; }
 
         .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(10px); }
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -176,13 +176,21 @@
 
         function render() {
             let grandTotal = 0n;
-            const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
+            
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
                 grandTotal += s.cost;
+                const dateObj = new Date(s.date + "T00:00:00");
+                const dayName = dateObj.toLocaleDateString('en-US', {weekday:'short'});
                 const [y, m, d] = s.date.split('-');
-                const dayName = new Date(y, m-1, d).toLocaleDateString('en-US', {weekday:'short'});
-                return `<div class="receipt"><div class="r-head">${dayName} ${d}/${m}/${y}</div>${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note">${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div></div>`;
+                
+                return `<div class="receipt">
+                    <div class="r-head">${dayName} ${d}/${m}/${y}</div>
+                    ${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note">${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}
+                    <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
+                </div>`;
             }).join('');
+            
             document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:12px">×</span></b></div></div>`).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             updateChart('14d');
@@ -190,16 +198,15 @@
 
         function updateChart(range = '14d') {
             const ctx = document.getElementById('spendingChart').getContext('2d');
-            const allSorted = [...spendings].sort((a, b) => new Date(a.date) - new Date(b.date));
+            const allSorted = [...spendings].sort((a, b) => a.date.localeCompare(b.date));
             let labels = [], data = [], labelText = "";
 
             if (range === '14d') {
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
                 data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "14 Record View";
-            } 
-            else if (range === 'month') {
+                labelText = "Records";
+            } else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
                 const currentYear = new Date().getFullYear();
                 const filtered = allSorted.filter(s => { const d = new Date(s.date); return d.getMonth() === selectedMonth && d.getFullYear() === currentYear; });
@@ -207,13 +214,12 @@
                 labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
                 data = new Array(daysInMonth).fill(0);
                 filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
-                labelText = "Month Analytics";
-            } 
-            else if (range === 'year') {
+                labelText = "Monthly";
+            } else if (range === 'year') {
                 data = new Array(12).fill(0);
                 allSorted.forEach(s => { if (new Date(s.date).getFullYear() === new Date().getFullYear()) data[new Date(s.date).getMonth()] += Number(s.cost) / 1000; });
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Annual Trend";
+                labelText = "Annual";
             }
 
             if (myChart) myChart.destroy();
@@ -267,13 +273,6 @@
         function calcClear() { calcVal = ""; updateCalc(); }
         function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
         function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; } }
-        window.addEventListener('keydown', e => {
-            if(!document.getElementById('calc-panel').classList.contains('open')) return;
-            if(/[0-9]/.test(e.key)) calcInput(e.key);
-            else if(['+','-','*','/'].includes(e.key)) calcCmd(e.key);
-            else if(e.key==='Enter'){ e.preventDefault(); calcSolve(); }
-            else if(e.key==='Backspace'||e.key==='Escape') calcClear();
-        });
 
         function addBill() { const n = document.getElementById('bill-name').value, a = document.getElementById('bill-amount').value; if(n&&a){ bills.push({name:n, amount:a}); render(); sync(); } }
         function deleteBill(i) { bills.splice(i,1); render(); sync(); }
