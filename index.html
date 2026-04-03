@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.6 - Immersive</title>
+    <title>SpendLog 12.7 - True Vibe</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -23,8 +23,8 @@
         
         #scanlines { 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            pointer-events: none; z-index: 9999; opacity: 0.15; display: var(--fx);
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+            pointer-events: none; z-index: 9999; opacity: 0.18; display: var(--fx);
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
                         linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
             background-size: 100% 3px, 3px 100%;
         }
@@ -32,7 +32,7 @@
         .nav-tabs { 
             display: flex; position: sticky; top: 0; background: var(--card); 
             border-bottom: var(--border); z-index: 1000; box-shadow: var(--glow);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
         }
         .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; letter-spacing: 1px; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); text-shadow: var(--glow); }
@@ -42,33 +42,33 @@
 
         .receipt { 
             background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; 
-            margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow, 0 4px 10px rgba(0,0,0,0.3)); 
-            border: var(--border); transform: var(--receipt-tilt, none); transition: 0.3s;
+            margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow, 0 4px 12px rgba(0,0,0,0.4)); 
+            border: var(--border); transform: var(--receipt-tilt, none); transition: 0.4s;
         }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
-        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
-        .r-note { font-size: 10px; opacity: 0.7; font-style: italic; display: block; }
-        .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
-        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 10px; }
+        .r-head { border-bottom: 1px dashed rgba(0,0,0,0.2); text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
+        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+        .r-note { font-size: 10px; opacity: 0.7; font-style: italic; }
+        .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
+        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 12px; }
 
         .input-group { 
-            background: var(--card); padding: 18px; border-radius: 12px; border: var(--border); 
-            margin-bottom: 15px; box-shadow: var(--glow); backdrop-filter: blur(8px);
+            background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); 
+            margin-bottom: 15px; box-shadow: var(--glow); backdrop-filter: blur(10px);
         }
-        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: rgba(0,0,0,0.4); border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
-        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: var(--glow); transition: 0.2s; text-transform: uppercase; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 6px 0; background: rgba(0,0,0,0.5); border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 6px; box-shadow: var(--glow); transition: 0.2s; text-transform: uppercase; }
 
         /* Calculator Overlay */
-        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); border-left: var(--border); z-index: 2001; transition: 0.4s; padding: 25px; box-sizing: border-box; }
+        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 20px rgba(0,0,0,0.6); border: 2px solid rgba(255,255,255,0.2); }
+        #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.92); backdrop-filter: blur(25px); border-left: var(--border); z-index: 2001; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1); padding: 25px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 80px; background: #111; color: var(--green); text-align: right; font-size: 32px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .calc-btn { background: #222; color: #fff; padding: 18px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; font-size: 18px; border: 1px solid #333; }
-        .calc-btn.active { background: var(--accent); border-color: #fff; }
+        .calc-screen { width: 100%; height: 85px; background: #000; color: var(--green); text-align: right; font-size: 34px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; box-shadow: inset 0 0 10px rgba(0,255,0,0.1); }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; font-weight: bold; font-size: 18px; border: 1px solid #333; }
+        .calc-btn.active { background: var(--accent); border-color: #fff; transform: scale(0.95); }
 
-        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(8px); }
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 18px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; box-shadow: var(--glow); backdrop-filter: blur(5px); }
+        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(10px); }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; box-shadow: var(--glow); text-transform: uppercase; letter-spacing: 2px; }
     </style>
 </head>
 <body>
@@ -94,10 +94,10 @@
     </div>
 
     <div id="view-analytics" class="view">
-        <div style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px;">
+        <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
-            <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 40px;">
+            <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 42px;">
                 <option value="0">January</option><option value="1">February</option><option value="2" selected>March</option>
                 <option value="3">April</option><option value="4">May</option><option value="5">June</option>
                 <option value="6">July</option><option value="7">August</option><option value="8">September</option>
@@ -111,7 +111,7 @@
     <div id="view-bills" class="view">
         <div class="input-group">
             <input type="text" id="bill-name" placeholder="Bill Name">
-            <input type="text" id="bill-amount" placeholder="Amount (e.g. 1M)">
+            <input type="text" id="bill-amount" placeholder="Amount (e.g. 1.5M)">
             <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
         </div>
         <div id="bill-list"></div>
@@ -119,17 +119,17 @@
 
     <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 11px; color: #8b949e; font-weight: bold;">ATMOSPHERE OVERRIDE</label>
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Atmosphere Override</label>
             <select onchange="applyAtmosphere(this.value)" style="margin-top:10px">
                 <option value="default">Default Matrix</option>
-                <option value="retro">80s Retro (Scanlines)</option>
+                <option value="retro">80s Retro (Synthwave)</option>
                 <option value="cyber">Cyberpunk (Neon Night)</option>
-                <option value="steam">Steampunk (Brass & Oil)</option>
-                <option value="horror">Uncanny (The Backrooms)</option>
+                <option value="steam">Steampunk (Brass & Iron)</option>
+                <option value="horror">Uncanny (Level 0)</option>
             </select>
         </div>
         <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="3" placeholder="Paste bulk report..." style="margin-top:10px"></textarea>
+        <textarea id="bulk-input" rows="3" placeholder="Paste bulk report..." style="margin-top:12px"></textarea>
         <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
@@ -186,7 +186,7 @@
                 const dayName = new Date(y, m-1, d).toLocaleDateString('en-US', {weekday:'short'});
                 return `<div class="receipt"><div class="r-head">${dayName} ${d}/${m}/${y}</div>${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note">${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
-            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:10px">×</span></b></div></div>`).join('');
+            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:12px">×</span></b></div></div>`).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             updateChart('14d');
         }
@@ -200,7 +200,7 @@
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
                 data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "Recent 14 Logs";
+                labelText = "Latest 14 Entries";
             } 
             else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
@@ -210,34 +210,47 @@
                 labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
                 data = new Array(daysInMonth).fill(0);
                 filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
-                labelText = "Monthly Trend";
+                labelText = "Daily Flow";
             } 
             else if (range === 'year') {
                 data = new Array(12).fill(0);
                 allSorted.forEach(s => { if (new Date(s.date).getFullYear() === new Date().getFullYear()) data[new Date(s.date).getMonth()] += Number(s.cost) / 1000; });
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Yearly Distribution";
+                labelText = "Annual Report";
             }
 
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
                 data: { labels, datasets: [{ label: labelText, data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)', pointRadius: range==='month'?1:4 }]},
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' } }, x: { grid: { display: false } } } }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.08)' } }, x: { grid: { display: false } } } }
             });
             const sum = data.reduce((a, b) => a + b, 0);
-            document.getElementById('stats-summary').innerHTML = `Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b> | Avg: <b>${data.filter(v=>v>0).length ? (sum/data.filter(v=>v>0).length).toFixed(1) : 0}k</b>`;
+            document.getElementById('stats-summary').innerHTML = `Sum: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b> | Avg: <b>${data.filter(v=>v>0).length ? (sum/data.filter(v=>v>0).length).toFixed(1) : 0}k</b>`;
         }
 
         function applyAtmosphere(t) {
             const r = document.documentElement.style;
             const fx = document.getElementById('scanlines');
             fx.style.setProperty('--fx', t==='retro'?'block':'none');
-            r.setProperty('--font','sans-serif'); r.setProperty('--glow','none'); r.setProperty('--filter','none'); r.setProperty('--receipt-tilt','none'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111');
-            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1614850523296-d8c1af93d400?w=1000')"); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 10px #ff00ff'); }
-            if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1605810230434-7631ac76ec81?w=1000')"); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.8)'); r.setProperty('--glow','0 0 15px #00f3ff'); }
-            if(t==='steam'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=1000')"); r.setProperty('--accent','#d4af37'); r.setProperty('--receipt-bg','#d2b48c'); r.setProperty('--card','rgba(44,30,22,0.9)'); }
-            if(t==='horror'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1518133910546-b6c2fb7d79e3?w=1000')"); r.setProperty('--filter','sepia(0.5) contrast(1.2)'); r.setProperty('--receipt-tilt','rotate(-1deg)'); r.setProperty('--font','monospace'); }
+            r.setProperty('--font','sans-serif'); r.setProperty('--glow','none'); r.setProperty('--filter','none'); r.setProperty('--receipt-tilt','none'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--card','rgba(22, 27, 34, 0.85)'); r.setProperty('--border','1px solid #30363d');
+
+            if(t==='retro'){ 
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); 
+                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 12px #ff00ff'); 
+            }
+            if(t==='cyber'){ 
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); 
+                r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.85)'); r.setProperty('--glow','0 0 15px #00f3ff'); r.setProperty('--border','1px solid #00f3ff');
+            }
+            if(t==='steam'){ 
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1501166617713-75b95ba0973d?q=80&w=2070')"); 
+                r.setProperty('--accent','#d4af37'); r.setProperty('--text','#e0c9a6'); r.setProperty('--receipt-bg','#c2a378'); r.setProperty('--receipt-text','#2a1a0a'); r.setProperty('--card','rgba(30, 20, 10, 0.9)'); r.setProperty('--font','serif'); r.setProperty('--border','1px solid #d4af37');
+            }
+            if(t==='horror'){ 
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1622547748225-3fc4abd2cca0?q=80&w=2070')"); 
+                r.setProperty('--filter','sepia(0.4) contrast(1.1) brightness(0.9) blur(0.4px)'); r.setProperty('--receipt-tilt','rotate(-1.5deg)'); r.setProperty('--font','monospace'); r.setProperty('--card','rgba(40, 40, 20, 0.8)'); r.setProperty('--accent','#999');
+            }
         }
 
         async function saveEntry() {
@@ -268,7 +281,7 @@
         function addBill() { const n = document.getElementById('bill-name').value, a = document.getElementById('bill-amount').value; if(n&&a){ bills.push({name:n, amount:a}); render(); sync(); } }
         function deleteBill(i) { bills.splice(i,1); render(); sync(); }
         async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); if(s){ s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }}
-        async function clearAllData(){ if(confirm("Wipe all?")){ spendings=[]; await sync(); render(); }}
+        async function clearAllData(){ if(confirm("Wipe all data permanently?")){ spendings=[]; await sync(); render(); }}
         function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active'); }
         
         document.getElementById('date-input').value = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})).toISOString().split('T')[0];
