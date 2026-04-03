@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.0</title>
+    <title>SpendLog 12.1</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; --text: #e6edf3; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; transition: 0.3s; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; transition: 0.3s; overflow-x: hidden; }
         
-        /* Navigation */
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
         .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
@@ -18,7 +17,7 @@
         .view.active { display: block; }
 
         /* Receipts */
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; }
+        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
         .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
         .r-note { font-size: 10px; color: #666; font-style: italic; margin-top: -3px; margin-bottom: 5px; display: block; }
@@ -32,23 +31,23 @@
 
         /* Calculator Overlay */
         #calc-toggle { position: fixed; right: 20px; bottom: 80px; background: var(--gold); color: #000; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        #calc-panel { position: fixed; right: -300px; top: 0; width: 280px; height: 100%; background: #000; border-left: 1px solid #333; z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
+        #calc-panel { position: fixed; right: -320px; top: 0; width: 300px; height: 100%; background: #000; border-left: 1px solid #333; z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 60px; background: #222; color: var(--green); text-align: right; font-size: 24px; padding: 10px; box-sizing: border-box; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+        .calc-screen { width: 100%; height: 70px; background: #111; color: var(--green); text-align: right; font-size: 28px; padding: 15px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; overflow: hidden; border: 1px solid #222; font-family: monospace; }
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-        .calc-btn { background: #333; color: #fff; padding: 15px; border-radius: 4px; text-align: center; cursor: pointer; font-weight: bold; }
-        .calc-btn:active { background: var(--accent); }
+        .calc-btn { background: #222; color: #fff; padding: 18px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; font-size: 18px; border: 1px solid #333; }
+        .calc-btn:active, .calc-btn.active { background: var(--accent); border-color: #fff; }
 
         /* Analytics */
         .chart-container { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #30363d; }
         
         /* Bills Tab */
-        .bill-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--danger); margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .bill-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--danger); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
 
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; }
     </style>
 </head>
-<body data-theme="dark">
+<body>
 
     <div class="nav-tabs">
         <div class="nav-tab active" onclick="showView('daily')">Logs</div>
@@ -62,7 +61,7 @@
             <input type="date" id="date-input">
             <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
             <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
-            <input type="text" id="note-input" placeholder="Ghi chú (Note - optional)">
+            <input type="text" id="note-input" placeholder="Ghi chú (Tùy chọn)">
             <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="daily-list"></div>
@@ -75,10 +74,10 @@
     </div>
 
     <div id="view-bills" class="view">
-        <h3 style="color:var(--danger)">Recurring Bills</h3>
+        <h3 style="color:var(--danger)">Weekly/Monthly Bills</h3>
         <div class="input-group">
-            <input type="text" id="bill-name" placeholder="Bill Name (Net, Rent...)">
-            <input type="text" id="bill-amount" placeholder="Amount (e.g. 200k)">
+            <input type="text" id="bill-name" placeholder="Bill Name (Rent, Net...)">
+            <input type="text" id="bill-amount" placeholder="Amount (200k)">
             <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
         </div>
         <div id="bill-list"></div>
@@ -89,7 +88,7 @@
         <select onchange="changeTheme(this.value)">
             <option value="#0d1117">Default Dark</option>
             <option value="#1a1a2e">Midnight Blue</option>
-            <option value="#1b1b1b">Pure Black</option>
+            <option value="#000000">Pure Black</option>
             <option value="#2d142c">Deep Purple</option>
         </select>
         <button class="btn" style="background:var(--green); margin-top:20px" onclick="importData()">SYNC BULK REPORT</button>
@@ -97,16 +96,17 @@
         <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
     </div>
 
-    <div id="calc-toggle" onclick="toggleCalc()">±</div>
+    <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
     <div id="calc-panel">
         <div class="calc-screen" id="calc-display">0</div>
         <div class="calc-grid">
-            <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
-            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
-            <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
-            <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
+            <div class="calc-btn" data-key="7" onclick="calcInput('7')">7</div><div class="calc-btn" data-key="8" onclick="calcInput('8')">8</div><div class="calc-btn" data-key="9" onclick="calcInput('9')">9</div><div class="calc-btn" data-key="/" onclick="calcCmd('/')">÷</div>
+            <div class="calc-btn" data-key="4" onclick="calcInput('4')">4</div><div class="calc-btn" data-key="5" onclick="calcInput('5')">5</div><div class="calc-btn" data-key="6" onclick="calcInput('6')">6</div><div class="calc-btn" data-key="*" onclick="calcCmd('*')">×</div>
+            <div class="calc-btn" data-key="1" onclick="calcInput('1')">1</div><div class="calc-btn" data-key="2" onclick="calcInput('2')">2</div><div class="calc-btn" data-key="3" onclick="calcInput('3')">3</div><div class="calc-btn" data-key="-" onclick="calcCmd('-')">-</div>
+            <div class="calc-btn" data-key="0" onclick="calcInput('0')">0</div><div class="calc-btn" data-key="Backspace" onclick="calcClear()">C</div><div class="calc-btn" data-key="Enter" onclick="calcSolve()">=</div><div class="calc-btn" data-key="+" onclick="calcCmd('+')">+</div>
         </div>
-        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
+        <p style="font-size: 10px; color: #555; text-align: center; margin-top: 15px;">Keyboard shortcuts enabled</p>
+        <button class="btn" style="margin-top:10px" onclick="toggleCalc()">CLOSE</button>
     </div>
 
     <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
@@ -150,17 +150,15 @@
         }
 
         function getDayName(dateStr) {
-            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const [y, m, d] = dateStr.split('-').map(Number);
-            return days[new Date(y, m - 1, d).getDay()];
+            const dt = new Date(y, m - 1, d);
+            return dt.toLocaleDateString('en-US', { weekday: 'short' });
         }
 
         function render() {
             let grandTotal = 0n;
-            let weeks = {};
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
-            // Render Logs
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
                 grandTotal += s.cost;
                 const [y, m, d] = s.date.split('-');
@@ -180,7 +178,6 @@
                 </div>`;
             }).join('');
 
-            // Bills
             document.getElementById('bill-list').innerHTML = bills.map((b, i) => `
                 <div class="bill-card">
                     <span>${b.name}</span>
@@ -202,8 +199,7 @@
             if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
             
             names.forEach((n, i) => {
-                const p = toBigInt(costs[i]);
-                entry.details.push({name:n.toUpperCase().trim(), price:p, note: note});
+                entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note: note});
             });
             entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
             await sync(); render();
@@ -232,10 +228,11 @@
             const name = document.getElementById('bill-name').value;
             const amount = document.getElementById('bill-amount').value;
             if(name && amount) { bills.push({name, amount}); render(); sync(); }
+            document.getElementById('bill-name').value = ""; document.getElementById('bill-amount').value = "";
         }
         function deleteBill(i) { bills.splice(i, 1); render(); sync(); }
 
-        // Calculator
+        // CALCULATOR KEYBOARD LOGIC
         let calcVal = "";
         function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
         function calcInput(v) { calcVal += v; updateCalc(); }
@@ -243,6 +240,33 @@
         function calcClear() { calcVal = ""; updateCalc(); }
         function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
         function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; updateCalc(); } }
+
+        window.addEventListener('keydown', (e) => {
+            if (!document.getElementById('calc-panel').classList.contains('open')) return;
+            
+            const key = e.key;
+            if (/[0-9]/.test(key)) calcInput(key);
+            else if (['+', '-', '*', '/'].includes(key)) calcCmd(key);
+            else if (key === 'Enter') { e.preventDefault(); calcSolve(); }
+            else if (key === 'Backspace' || key === 'Escape') calcClear();
+
+            // Visual feedback
+            const btn = document.querySelector(`.calc-btn[data-key="${key}"]`);
+            if (btn) {
+                btn.classList.add('active');
+                setTimeout(() => btn.classList.remove('active'), 100);
+            }
+        });
+
+        async function deleteLine(date, idx) {
+            const s = spendings.find(x => x.date === date);
+            if(s){
+                s.details.splice(idx, 1);
+                s.cost = s.details.reduce((a,b) => a + b.price, 0n);
+                if(s.details.length === 0) spendings = spendings.filter(x => x.date !== date);
+                await sync(); render();
+            }
+        }
 
         function changeTheme(color) { document.body.style.background = color; }
         function showView(v){
