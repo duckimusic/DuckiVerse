@@ -3,51 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.1</title>
+    <title>SpendLog 12.3 - Atmosphere</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; --text: #e6edf3; }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; transition: 0.3s; overflow-x: hidden; }
+    <style id="theme-style">
+        :root { 
+            --bg: #0d1117; --card: #161b22; --accent: #58a6ff; 
+            --green: #3fb950; --gold: #f2cc60; --danger: #f85149;
+            --text: #e6edf3; --font: -apple-system, sans-serif;
+            --border: 1px solid #30363d; --glow: none; --fx: none;
+            --receipt-bg: #fff; --receipt-text: #111;
+        }
+
+        body { background: var(--bg); color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; transition: 0.5s; overflow-x: hidden; }
         
-        .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
+        /* Scanlines FX Overlay */
+        #scanlines { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            pointer-events: none; z-index: 9999; opacity: 0.12; display: var(--fx);
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+        }
+
+        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--card); border-bottom: var(--border); z-index: 1000; box-shadow: var(--glow); }
         .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
-        .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); text-shadow: var(--glow); }
         
         .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
         .view.active { display: block; }
 
-        /* Receipts */
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
+        .receipt { background: var(--receipt-bg); color: var(--receipt-text); padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: var(--glow); border: var(--border); }
+        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
-        .r-note { font-size: 10px; color: #666; font-style: italic; margin-top: -3px; margin-bottom: 5px; display: block; }
-        .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
+        .r-note { font-size: 10px; opacity: 0.7; font-style: italic; margin-top: -3px; display: block; }
+        .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
         .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 10px; font-size: 18px; }
 
-        /* Inputs */
-        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 15px; }
-        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
-        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: var(--border); margin-bottom: 15px; box-shadow: var(--glow); }
+        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: rgba(0,0,0,0.3); border: var(--border); color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: var(--border); border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; box-shadow: var(--glow); transition: 0.2s; }
+        .btn:active { transform: scale(0.98); }
 
-        /* Calculator Overlay */
+        /* Calculator */
         #calc-toggle { position: fixed; right: 20px; bottom: 80px; background: var(--gold); color: #000; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
-        #calc-panel { position: fixed; right: -320px; top: 0; width: 300px; height: 100%; background: #000; border-left: 1px solid #333; z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
+        #calc-panel { position: fixed; right: -320px; top: 0; width: 300px; height: 100%; background: #000; border-left: var(--border); z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 70px; background: #111; color: var(--green); text-align: right; font-size: 28px; padding: 15px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; overflow: hidden; border: 1px solid #222; font-family: monospace; }
+        .calc-screen { width: 100%; height: 70px; background: #111; color: var(--green); text-align: right; font-size: 28px; padding: 15px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
         .calc-btn { background: #222; color: #fff; padding: 18px; border-radius: 8px; text-align: center; cursor: pointer; font-weight: bold; font-size: 18px; border: 1px solid #333; }
-        .calc-btn:active, .calc-btn.active { background: var(--accent); border-color: #fff; }
+        .calc-btn.active { background: var(--accent); }
 
-        /* Analytics */
-        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #30363d; }
-        
-        /* Bills Tab */
-        .bill-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--danger); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; }
+        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: var(--border); height: 250px; }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; box-shadow: var(--glow); }
     </style>
 </head>
 <body>
+
+    <div id="scanlines"></div>
 
     <div class="nav-tabs">
         <div class="nav-tab active" onclick="showView('daily')">Logs</div>
@@ -68,35 +80,41 @@
     </div>
 
     <div id="view-analytics" class="view">
-        <h3 style="color:var(--gold)">Spending Trend</h3>
+        <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+            <button class="btn" style="padding: 8px; font-size: 10px; margin: 0;" onclick="updateChart('7d')">7D</button>
+            <button class="btn" style="padding: 8px; font-size: 10px; margin: 0;" onclick="updateChart('month')">MONTH</button>
+            <button class="btn" style="padding: 8px; font-size: 10px; margin: 0;" onclick="updateChart('year')">YEAR</button>
+        </div>
         <div class="chart-container"><canvas id="spendingChart"></canvas></div>
-        <div id="weekly-breakdown"></div>
+        <div id="stats-summary" style="background: var(--card); padding: 15px; border-radius: 12px; border: var(--border); font-size: 13px;"></div>
     </div>
 
     <div id="view-bills" class="view">
-        <h3 style="color:var(--danger)">Weekly/Monthly Bills</h3>
         <div class="input-group">
-            <input type="text" id="bill-name" placeholder="Bill Name (Rent, Net...)">
-            <input type="text" id="bill-amount" placeholder="Amount (200k)">
+            <input type="text" id="bill-name" placeholder="Bill Name">
+            <input type="text" id="bill-amount" placeholder="Amount (e.g. 200k)">
             <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
         </div>
         <div id="bill-list"></div>
     </div>
 
     <div id="view-tools" class="view">
-        <h3>Custom UI</h3>
-        <select onchange="changeTheme(this.value)">
-            <option value="#0d1117">Default Dark</option>
-            <option value="#1a1a2e">Midnight Blue</option>
-            <option value="#000000">Pure Black</option>
-            <option value="#2d142c">Deep Purple</option>
-        </select>
-        <button class="btn" style="background:var(--green); margin-top:20px" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="5" placeholder="Paste bulk report..." style="margin-top:10px"></textarea>
+        <div class="input-group">
+            <label style="font-size: 10px; color: #8b949e;">ATMOSPHERE OVERRIDE</label>
+            <select onchange="applyAtmosphere(this.value)">
+                <option value="default">Default Matrix</option>
+                <option value="retro">80s Retro (Scanlines)</option>
+                <option value="cyber">Cyberpunk (Neon)</option>
+                <option value="steam">Steampunk (Brass)</option>
+                <option value="horror">Uncanny (Backrooms)</option>
+            </select>
+        </div>
+        <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
+        <textarea id="bulk-input" rows="3" placeholder="Paste report..."></textarea>
         <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
     </div>
 
-    <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
+    <div id="calc-toggle" onclick="toggleCalc()">±</div>
     <div id="calc-panel">
         <div class="calc-screen" id="calc-display">0</div>
         <div class="calc-grid">
@@ -105,8 +123,7 @@
             <div class="calc-btn" data-key="1" onclick="calcInput('1')">1</div><div class="calc-btn" data-key="2" onclick="calcInput('2')">2</div><div class="calc-btn" data-key="3" onclick="calcInput('3')">3</div><div class="calc-btn" data-key="-" onclick="calcCmd('-')">-</div>
             <div class="calc-btn" data-key="0" onclick="calcInput('0')">0</div><div class="calc-btn" data-key="Backspace" onclick="calcClear()">C</div><div class="calc-btn" data-key="Enter" onclick="calcSolve()">=</div><div class="calc-btn" data-key="+" onclick="calcCmd('+')">+</div>
         </div>
-        <p style="font-size: 10px; color: #555; text-align: center; margin-top: 15px;">Keyboard shortcuts enabled</p>
-        <button class="btn" style="margin-top:10px" onclick="toggleCalc()">CLOSE</button>
+        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
     </div>
 
     <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
@@ -118,8 +135,8 @@
         let myChart = null;
 
         function formatK(n) {
-            let num = Number(n);
-            return num === 0 ? "0k" : new Intl.NumberFormat('en-US').format(Math.floor(num/1000)) + "k";
+            let val = Math.floor(Number(n)/1000);
+            return val === 0 ? "0k" : new Intl.NumberFormat('en-US').format(val) + "k";
         }
 
         function toBigInt(val) {
@@ -130,8 +147,7 @@
 
         async function sync() {
             const storageData = spendings.map(s => ({
-                ...s,
-                cost: s.cost.toString(),
+                ...s, cost: s.cost.toString(),
                 details: s.details.map(d => ({ ...d, price: d.price.toString() }))
             }));
             await fetch(API, {method:"POST", body:JSON.stringify(storageData)});
@@ -142,48 +158,31 @@
             const res = await fetch(API);
             const data = await res.json() || [];
             spendings = data.map(s => ({
-                ...s,
-                cost: BigInt(s.cost || 0),
+                ...s, cost: BigInt(s.cost || 0),
                 details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" }))
             }));
             render();
         }
 
-        function getDayName(dateStr) {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            const dt = new Date(y, m - 1, d);
-            return dt.toLocaleDateString('en-US', { weekday: 'short' });
-        }
-
         function render() {
             let grandTotal = 0n;
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
-
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
                 grandTotal += s.cost;
                 const [y, m, d] = s.date.split('-');
-                const dayName = getDayName(s.date);
+                const dayName = new Date(y, m-1, d).toLocaleDateString('en-US', {weekday:'short'});
                 return `
                 <div class="receipt">
                     <div class="r-head">${dayName} ${d}/${m}/${y}</div>
                     ${s.details.map((item, idx) => `
                         <div class="r-row">
-                            <div style="display:flex; flex-direction:column">
-                                <span style="font-weight:bold">${item.name}</span>
-                                ${item.note ? `<span class="r-note">${item.note}</span>` : ''}
-                            </div>
+                            <div><b>${item.name}</b>${item.note ? `<span class="r-note">${item.note}</span>` : ''}</div>
                             <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
                         </div>`).join('')}
                     <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
                 </div>`;
             }).join('');
-
-            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `
-                <div class="bill-card">
-                    <span>${b.name}</span>
-                    <span style="font-weight:bold; color:var(--danger)">${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:10px">×</span></span>
-                </div>`).join('');
-
+            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer">×</span></b></div></div>`).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             updateChart();
         }
@@ -194,90 +193,80 @@
             const names = document.getElementById('item-input').value.split('+');
             const costs = document.getElementById('cost-input').value.split('+');
             const note = document.getElementById('note-input').value;
-
             let entry = spendings.find(s => s.date === d);
             if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
-            
-            names.forEach((n, i) => {
-                entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note: note});
-            });
+            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i]), note}));
             entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = ""; document.getElementById('note-input').value = "";
         }
 
-        function updateChart() {
+        function updateChart(range = '7d') {
             const ctx = document.getElementById('spendingChart').getContext('2d');
-            const last7 = [...spendings].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-7);
-            const labels = last7.map(s => s.date.split('-').slice(1).reverse().join('/'));
-            const data = last7.map(s => Number(s.cost)/1000);
+            const allSorted = [...spendings].sort((a,b) => new Date(a.date) - new Date(b.date));
+            let labels = [], data = [], labelText = "Spending (k)";
+
+            if(range==='7d') {
+                const slice = allSorted.slice(-7);
+                labels = slice.map(s => s.date.split('-').reverse().slice(0,2).join('/'));
+                data = slice.map(s => Number(s.cost)/1000);
+            } else if(range==='month') {
+                const now = new Date();
+                const filtered = allSorted.filter(s => new Date(s.date).getMonth() === now.getMonth());
+                labels = filtered.map(s => s.date.split('-')[2]);
+                data = filtered.map(s => Number(s.cost)/1000);
+            } else if(range==='year') {
+                const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                data = new Array(12).fill(0);
+                allSorted.forEach(s => { if(new Date(s.date).getFullYear() === new Date().getFullYear()) data[new Date(s.date).getMonth()] += Number(s.cost)/1000; });
+                labels = months;
+            }
 
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{ label: 'Spending (k)', data: data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]
-                },
-                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
+                data: { labels, datasets: [{ label: labelText, data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]},
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
             });
+            const sum = data.reduce((a,b)=>a+b,0);
+            document.getElementById('stats-summary').innerHTML = `Period Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b> | Avg: <b>${data.length ? (sum/data.length).toFixed(1) : 0}k</b>`;
         }
 
-        // Bill Logic
-        function addBill() {
-            const name = document.getElementById('bill-name').value;
-            const amount = document.getElementById('bill-amount').value;
-            if(name && amount) { bills.push({name, amount}); render(); sync(); }
-            document.getElementById('bill-name').value = ""; document.getElementById('bill-amount').value = "";
+        // Themes
+        function applyAtmosphere(t) {
+            const r = document.documentElement.style;
+            const fx = document.getElementById('scanlines');
+            fx.style.setProperty('--fx', t === 'retro' ? 'block' : 'none');
+            r.setProperty('--font', 'sans-serif'); r.setProperty('--glow', 'none'); r.setProperty('--filter', 'none'); r.setProperty('--receipt-bg', '#fff'); r.setProperty('--receipt-text', '#111');
+            if(t==='retro'){ r.setProperty('--bg','#2b033d'); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 10px #ff00ff'); }
+            if(t==='cyber'){ r.setProperty('--bg','#000'); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#f0f'); r.setProperty('--border','1px solid #00f3ff'); r.setProperty('--glow','0 0 15px #00f3ff'); }
+            if(t==='steam'){ r.setProperty('--bg','#2c1e16'); r.setProperty('--accent','#d4af37'); r.setProperty('--receipt-bg','#d2b48c'); r.setProperty('--font','serif'); }
+            if(t==='horror'){ r.setProperty('--bg','#1a1a10'); r.setProperty('--filter','sepia(0.6) contrast(1.2)'); r.setProperty('--font','monospace'); }
         }
-        function deleteBill(i) { bills.splice(i, 1); render(); sync(); }
 
-        // CALCULATOR KEYBOARD LOGIC
+        // Calc
         let calcVal = "";
         function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
         function calcInput(v) { calcVal += v; updateCalc(); }
         function calcCmd(c) { calcVal += " " + c + " "; updateCalc(); }
         function calcClear() { calcVal = ""; updateCalc(); }
         function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
-        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; updateCalc(); } }
-
-        window.addEventListener('keydown', (e) => {
-            if (!document.getElementById('calc-panel').classList.contains('open')) return;
-            
-            const key = e.key;
-            if (/[0-9]/.test(key)) calcInput(key);
-            else if (['+', '-', '*', '/'].includes(key)) calcCmd(key);
-            else if (key === 'Enter') { e.preventDefault(); calcSolve(); }
-            else if (key === 'Backspace' || key === 'Escape') calcClear();
-
-            // Visual feedback
-            const btn = document.querySelector(`.calc-btn[data-key="${key}"]`);
-            if (btn) {
-                btn.classList.add('active');
-                setTimeout(() => btn.classList.remove('active'), 100);
-            }
+        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; } }
+        window.addEventListener('keydown', e => {
+            if(!document.getElementById('calc-panel').classList.contains('open')) return;
+            if(/[0-9]/.test(e.key)) calcInput(e.key);
+            else if(['+','-','*','/'].includes(e.key)) calcCmd(e.key);
+            else if(e.key==='Enter'){ e.preventDefault(); calcSolve(); }
+            else if(e.key==='Backspace'||e.key==='Escape') calcClear();
         });
 
-        async function deleteLine(date, idx) {
-            const s = spendings.find(x => x.date === date);
-            if(s){
-                s.details.splice(idx, 1);
-                s.cost = s.details.reduce((a,b) => a + b.price, 0n);
-                if(s.details.length === 0) spendings = spendings.filter(x => x.date !== date);
-                await sync(); render();
-            }
-        }
-
-        function changeTheme(color) { document.body.style.background = color; }
-        function showView(v){
-            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
-            document.getElementById(`view-${v}`).classList.add('active');
-            document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active');
-        }
-
-        const vnNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
-        document.getElementById('date-input').value = vnNow.toISOString().split('T')[0];
+        function addBill() { const n = document.getElementById('bill-name').value, a = document.getElementById('bill-amount').value; if(n&&a){ bills.push({name:n, amount:a}); render(); sync(); } }
+        function deleteBill(i) { bills.splice(i,1); render(); sync(); }
+        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); if(s){ s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }}
+        async function clearAllData(){ if(confirm("Wipe everything?")){ spendings=[]; await sync(); render(); }}
+        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active'); }
+        
+        document.getElementById('date-input').value = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})).toISOString().split('T')[0];
         load();
     </script>
 </body>
