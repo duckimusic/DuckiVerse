@@ -3,54 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 11.8 - True k-Display</title>
+    <title>SpendLog 12.0</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; }
-        body { background: var(--bg); color: #e6edf3; font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; }
+        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --green: #3fb950; --gold: #f2cc60; --danger: #f85149; --text: #e6edf3; }
+        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; transition: 0.3s; }
         
+        /* Navigation */
         .nav-tabs { display: flex; position: sticky; top: 0; background: #161b22; border-bottom: 1px solid #30363d; z-index: 1000; }
-        .nav-tab { flex: 1; padding: 18px; text-align: center; font-size: 11px; font-weight: 800; cursor: pointer; color: #8b949e; }
+        .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
         
-        .view { display: none; padding: 20px; max-width: 480px; margin: 0 auto; }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; }
         .view.active { display: block; }
-        
-        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
-        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 14px; }
-        .del-item { color: var(--danger); font-weight: bold; cursor: pointer; padding: 0 8px; font-size: 18px; }
+
+        /* Receipts */
+        .receipt { background: #fff; color: #111; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; box-shadow: 0 4px 10px rgba(0,0,0,0.3); position: relative; }
+        .r-head { border-bottom: 1px dashed #aaa; text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; font-size: 14px; }
+        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 5px 0; }
+        .r-note { font-size: 10px; color: #666; font-style: italic; margin-top: -3px; margin-bottom: 5px; display: block; }
         .r-total { border-top: 1px solid #000; margin-top: 8px; padding-top: 5px; display: flex; justify-content: space-between; font-weight: bold; font-size: 16px; }
+        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 10px; font-size: 18px; }
+
+        /* Inputs */
+        .input-group { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 15px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 14px; outline: none; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; }
+
+        /* Calculator Overlay */
+        #calc-toggle { position: fixed; right: 20px; bottom: 80px; background: var(--gold); color: #000; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; box-shadow: 0 4px 15px rgba(0,0,0,0.4); }
+        #calc-panel { position: fixed; right: -300px; top: 0; width: 280px; height: 100%; background: #000; border-left: 1px solid #333; z-index: 2001; transition: 0.4s; padding: 20px; box-sizing: border-box; }
+        #calc-panel.open { right: 0; }
+        .calc-screen { width: 100%; height: 60px; background: #222; color: var(--green); text-align: right; font-size: 24px; padding: 10px; box-sizing: border-box; border-radius: 4px; margin-bottom: 10px; overflow: hidden; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .calc-btn { background: #333; color: #fff; padding: 15px; border-radius: 4px; text-align: center; cursor: pointer; font-weight: bold; }
+        .calc-btn:active { background: var(--accent); }
+
+        /* Analytics */
+        .chart-container { background: var(--card); border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #30363d; }
         
-        input, textarea { width: 100%; padding: 12px; margin: 5px 0; background: #000; border: 1px solid #30363d; color: var(--accent); border-radius: 8px; box-sizing: border-box; font-size: 16px; outline: none; }
-        .btn-save { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-        .week-card { background: var(--card); padding: 15px; border-radius: 12px; border: 1px solid #30363d; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--gold); }
+        /* Bills Tab */
+        .bill-card { background: var(--card); padding: 15px; border-radius: 12px; border-left: 4px solid var(--danger); margin-bottom: 10px; display: flex; justify-content: space-between; }
+
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: bold; z-index: 100; font-size: 18px; }
     </style>
 </head>
-<body>
+<body data-theme="dark">
 
     <div class="nav-tabs">
-        <div class="nav-tab active" onclick="showView('daily')">DAILY LOGS</div>
-        <div class="nav-tab" onclick="showView('weekly')">WEEKLY TOTALS</div>
-        <div class="nav-tab" onclick="showView('tools')">BULK / WIPE</div>
+        <div class="nav-tab active" onclick="showView('daily')">Logs</div>
+        <div class="nav-tab" onclick="showView('analytics')">Graphs</div>
+        <div class="nav-tab" onclick="showView('bills')">Bills</div>
+        <div class="nav-tab" onclick="showView('tools')">Settings</div>
     </div>
 
     <div id="view-daily" class="view active">
-        <div style="background:var(--card); padding:15px; border-radius:12px; border:1px solid #30363d">
+        <div class="input-group">
             <input type="date" id="date-input">
             <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
             <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
-            <button class="btn-save" onclick="saveEntry()">SAVE RECEIPT</button>
+            <input type="text" id="note-input" placeholder="Ghi chú (Note - optional)">
+            <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
-        <div id="daily-list" style="margin-top:20px"></div>
+        <div id="daily-list"></div>
     </div>
 
-    <div id="view-weekly" class="view"><div id="weekly-breakdown"></div></div>
+    <div id="view-analytics" class="view">
+        <h3 style="color:var(--gold)">Spending Trend</h3>
+        <div class="chart-container"><canvas id="spendingChart"></canvas></div>
+        <div id="weekly-breakdown"></div>
+    </div>
+
+    <div id="view-bills" class="view">
+        <h3 style="color:var(--danger)">Recurring Bills</h3>
+        <div class="input-group">
+            <input type="text" id="bill-name" placeholder="Bill Name (Net, Rent...)">
+            <input type="text" id="bill-amount" placeholder="Amount (e.g. 200k)">
+            <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
+        </div>
+        <div id="bill-list"></div>
+    </div>
 
     <div id="view-tools" class="view">
-        <textarea id="bulk-input" rows="10" placeholder="Paste report here..."></textarea>
-        <button class="btn-save" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <button class="btn-save" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
+        <h3>Custom UI</h3>
+        <select onchange="changeTheme(this.value)">
+            <option value="#0d1117">Default Dark</option>
+            <option value="#1a1a2e">Midnight Blue</option>
+            <option value="#1b1b1b">Pure Black</option>
+            <option value="#2d142c">Deep Purple</option>
+        </select>
+        <button class="btn" style="background:var(--green); margin-top:20px" onclick="importData()">SYNC BULK REPORT</button>
+        <textarea id="bulk-input" rows="5" placeholder="Paste bulk report..." style="margin-top:10px"></textarea>
+        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL DATA</button>
+    </div>
+
+    <div id="calc-toggle" onclick="toggleCalc()">±</div>
+    <div id="calc-panel">
+        <div class="calc-screen" id="calc-display">0</div>
+        <div class="calc-grid">
+            <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
+            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
+            <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
+            <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
+        </div>
+        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
     </div>
 
     <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
@@ -58,51 +114,45 @@
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         let spendings = [];
+        let bills = JSON.parse(localStorage.getItem('spendlog_bills')) || [];
+        let myChart = null;
 
-        // FIXED: Divides by 1000 before adding "k" so 16000 becomes 16k
         function formatK(n) {
-            let num = Number(n); 
-            if (num === 0) return "0k";
-            let kValue = Math.floor(num / 1000); 
-            return new Intl.NumberFormat('en-US').format(kValue) + "k";
+            let num = Number(n);
+            return num === 0 ? "0k" : new Intl.NumberFormat('en-US').format(Math.floor(num/1000)) + "k";
         }
 
-        // Clean BigInt logic - no decimals allowed
         function toBigInt(val) {
             if (!val) return 0n;
             let clean = String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '');
             return BigInt(clean || 0);
         }
 
-        async function sync() { 
+        async function sync() {
             const storageData = spendings.map(s => ({
                 ...s,
                 cost: s.cost.toString(),
                 details: s.details.map(d => ({ ...d, price: d.price.toString() }))
             }));
-            await fetch(API, {method:"POST", body:JSON.stringify(storageData)}); 
+            await fetch(API, {method:"POST", body:JSON.stringify(storageData)});
+            localStorage.setItem('spendlog_bills', JSON.stringify(bills));
         }
 
         async function load() {
-            try {
-                const res = await fetch(API);
-                const data = await res.json() || [];
-                spendings = data.map(s => ({
-                    ...s,
-                    cost: BigInt(s.cost || 0),
-                    details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) }))
-                }));
-                render();
-            } catch(e) { console.error("Load failed"); }
+            const res = await fetch(API);
+            const data = await res.json() || [];
+            spendings = data.map(s => ({
+                ...s,
+                cost: BigInt(s.cost || 0),
+                details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0), note: d.note || "" }))
+            }));
+            render();
         }
 
-        function getMondayID(dateStr) {
+        function getDayName(dateStr) {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
             const [y, m, d] = dateStr.split('-').map(Number);
-            let date = new Date(y, m - 1, d);
-            let day = date.getDay();
-            let diff = date.getDate() - day + (day === 0 ? -6 : 1);
-            let monday = new Date(date.setDate(diff));
-            return monday.toISOString().split('T')[0];
+            return days[new Date(y, m - 1, d).getDay()];
         }
 
         function render() {
@@ -110,31 +160,35 @@
             let weeks = {};
             const sorted = [...spendings].sort((a,b) => new Date(b.date) - new Date(a.date));
 
+            // Render Logs
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
                 grandTotal += s.cost;
-                const wk = getMondayID(s.date);
-                weeks[wk] = (weeks[wk] || 0n) + s.cost;
                 const [y, m, d] = s.date.split('-');
+                const dayName = getDayName(s.date);
                 return `
                 <div class="receipt">
-                    <div class="r-head">${d}/${m}/${y}</div>
+                    <div class="r-head">${dayName} ${d}/${m}/${y}</div>
                     ${s.details.map((item, idx) => `
                         <div class="r-row">
-                            <span>${item.name}</span>
-                            <span>${formatK(item.price)} <span class="del-item" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
+                            <div style="display:flex; flex-direction:column">
+                                <span style="font-weight:bold">${item.name}</span>
+                                ${item.note ? `<span class="r-note">${item.note}</span>` : ''}
+                            </div>
+                            <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
                         </div>`).join('')}
                     <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
                 </div>`;
             }).join('');
 
-            const sortedWks = Object.keys(weeks).sort((a,b) => new Date(b) - new Date(a));
-            document.getElementById('weekly-breakdown').innerHTML = sortedWks.map(w => `
-                <div class="week-card">
-                    <span style="font-size:12px; color:#8b949e">Week of ${w}</span>
-                    <span style="font-weight:900; color:var(--gold)">${formatK(weeks[w])}</span>
+            // Bills
+            document.getElementById('bill-list').innerHTML = bills.map((b, i) => `
+                <div class="bill-card">
+                    <span>${b.name}</span>
+                    <span style="font-weight:bold; color:var(--danger)">${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:10px">×</span></span>
                 </div>`).join('');
 
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
+            updateChart();
         }
 
         async function saveEntry() {
@@ -142,49 +196,55 @@
             if(!d) return;
             const names = document.getElementById('item-input').value.split('+');
             const costs = document.getElementById('cost-input').value.split('+');
+            const note = document.getElementById('note-input').value;
+
             let entry = spendings.find(s => s.date === d);
             if(!entry) { entry = {date:d, cost:0n, details:[]}; spendings.push(entry); }
-            names.forEach((n, i) => entry.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
+            
+            names.forEach((n, i) => {
+                const p = toBigInt(costs[i]);
+                entry.details.push({name:n.toUpperCase().trim(), price:p, note: note});
+            });
             entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
             await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
+            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = ""; document.getElementById('note-input').value = "";
         }
 
-        async function importData() {
-            const raw = document.getElementById('bulk-input').value;
-            const segments = raw.split(/\((?=\d+\/\d+)/); 
-            segments.forEach(seg => {
-                const h = seg.match(/(\d+)\/(\d+)/);
-                if(!h) return;
-                const dMap = {'T2':0,'T3':1,'T4':2,'T5':3,'T6':4,'T7':5,'CN':6};
-                seg.split('\n').forEach(line => {
-                    const day = line.match(/^(T\d|CN)\s*:/i);
-                    if(!day || line.includes(': X')) return;
-                    let dt = new Date(2026, h[2]-1, h[1]);
-                    dt.setDate(dt.getDate() + dMap[day[1].toUpperCase()]);
-                    const ds = dt.toISOString().split('T')[0];
-                    const nums = line.match(/\d+k?/gi);
-                    const sum = nums.reduce((acc, n) => acc + toBigInt(n), 0n);
-                    const name = (line.match(/\(([^)]+)\)/) || [null, "EXPENSE"])[1].toUpperCase();
-                    spendings = spendings.filter(s => s.date !== ds);
-                    spendings.push({date: ds, cost: sum, details: [{name, price: sum}]});
-                });
+        function updateChart() {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            const last7 = [...spendings].sort((a,b)=>new Date(a.date)-new Date(b.date)).slice(-7);
+            const labels = last7.map(s => s.date.split('-').slice(1).reverse().join('/'));
+            const data = last7.map(s => Number(s.cost)/1000);
+
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{ label: 'Spending (k)', data: data, borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]
+                },
+                options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#333' } }, x: { grid: { display: false } } } }
             });
-            await sync(); render(); document.getElementById('bulk-input').value = "";
         }
 
-        async function deleteLine(date, idx) {
-            const s = spendings.find(x => x.date === date);
-            if(s){
-                s.details.splice(idx, 1);
-                s.cost = s.details.reduce((a,b) => a + b.price, 0n);
-                if(s.details.length === 0) spendings = spendings.filter(x => x.date !== date);
-                await sync(); render();
-            }
+        // Bill Logic
+        function addBill() {
+            const name = document.getElementById('bill-name').value;
+            const amount = document.getElementById('bill-amount').value;
+            if(name && amount) { bills.push({name, amount}); render(); sync(); }
         }
+        function deleteBill(i) { bills.splice(i, 1); render(); sync(); }
 
-        async function clearAllData(){ if(confirm("Wipe everything?")){ spendings=[]; await sync(); render(); }}
-        
+        // Calculator
+        let calcVal = "";
+        function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
+        function calcInput(v) { calcVal += v; updateCalc(); }
+        function calcCmd(c) { calcVal += " " + c + " "; updateCalc(); }
+        function calcClear() { calcVal = ""; updateCalc(); }
+        function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
+        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; updateCalc(); } }
+
+        function changeTheme(color) { document.body.style.background = color; }
         function showView(v){
             document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
             document.querySelectorAll('.nav-tab').forEach(e => e.classList.remove('active'));
@@ -194,7 +254,6 @@
 
         const vnNow = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"}));
         document.getElementById('date-input').value = vnNow.toISOString().split('T')[0];
-        
         load();
     </script>
 </body>
