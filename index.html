@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.6 - Monday First</title>
+    <title>SpendLog 12.8.7 - Strict Monday</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -109,20 +109,20 @@
             <input type="text" id="item-input" placeholder="Tên (Xăng + Thuốc)">
             <input type="text" id="cost-input" placeholder="Giá (50k + 26k)">
             <input type="text" id="note-input" placeholder="Ghi chú (Tùy chọn)">
-            <button class="btn" onclick="saveEntry()">LƯU HÓA ĐƠN</button>
+            <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
         <div id="daily-list"></div>
     </div>
 
     <div id="view-analytics" class="view">
         <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px;">
-            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">GẦN ĐÂY</button>
-            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">NĂM</button>
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
             <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 42px;">
-                <option value="0">Tháng 1</option><option value="1">Tháng 2</option><option value="2">Tháng 3</option>
-                <option value="3" selected>Tháng 4</option><option value="4">Tháng 5</option><option value="5">Tháng 6</option>
-                <option value="6">Tháng 7</option><option value="7">Tháng 8</option><option value="8">Tháng 9</option>
-                <option value="9">Tháng 10</option><option value="10">Tháng 11</option><option value="11">Tháng 12</option>
+                <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                <option value="3" selected>April</option><option value="4">May</option><option value="5">June</option>
+                <option value="6">July</option><option value="7">August</option><option value="8">September</option>
+                <option value="9">October</option><option value="10">November</option><option value="11">December</option>
             </select>
         </div>
         <div class="chart-container"><canvas id="spendingChart"></canvas></div>
@@ -131,16 +131,16 @@
 
     <div id="view-bills" class="view">
         <div class="input-group">
-            <input type="text" id="bill-name" placeholder="Tên hóa đơn">
-            <input type="text" id="bill-amount" placeholder="Số tiền (Ví dụ: 1.5M)">
-            <button class="btn" style="background:var(--danger)" onclick="addBill()">THÊM HÓA ĐƠN CỐ ĐỊNH</button>
+            <input type="text" id="bill-name" placeholder="Bill Name">
+            <input type="text" id="bill-amount" placeholder="Amount (e.g. 1.5M)">
+            <button class="btn" style="background:var(--danger)" onclick="addBill()">ADD BILL</button>
         </div>
         <div id="bill-list"></div>
     </div>
 
     <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Giao diện</label>
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold; text-transform: uppercase;">Atmosphere</label>
             <select onchange="applyAtmosphere(this.value)" style="margin-top:10px">
                 <option value="default">Default Matrix</option>
                 <option value="retro">80s Retro</option>
@@ -149,9 +149,9 @@
                 <option value="horror">Uncanny</option>
             </select>
         </div>
-        <button class="btn" style="background:var(--green)" onclick="importData()">NHẬP DỮ LIỆU TUẦN (SYNC)</button>
-        <textarea id="bulk-input" rows="8" placeholder="Dán báo cáo tại đây..." style="margin-top:12px; font-size: 11px;"></textarea>
-        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">XÓA TẤT CẢ DỮ LIỆU</button>
+        <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
+        <textarea id="bulk-input" rows="8" placeholder="Paste bulk report here..." style="margin-top:12px; font-size: 11px;"></textarea>
+        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
     <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
@@ -163,10 +163,10 @@
             <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
             <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
         </div>
-        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">ĐÓNG</button>
+        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
     </div>
 
-    <div class="total-footer">TỔNG CỘNG: <span id="grand-total-val">0k</span></div>
+    <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
@@ -210,7 +210,7 @@
                             <span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span>
                         </div>
                     `).join('')}
-                    <div class="r-total"><span>TỔNG</span><span>${formatK(s.cost)}</span></div>
+                    <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
                 </div>`;
             }).join('');
             document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:12px">×</span></b></div></div>`).join('');
@@ -224,12 +224,11 @@
             const lines = input.split('\n');
             let count = 0;
             let currentStartDate = null;
-            // logic Thứ Hai bắt đầu: T2=0, T3=1... CN=6
             const vnDays = { "T2": 0, "T3": 1, "T4": 2, "T5": 3, "T6": 4, "T7": 5, "CN": 6 };
 
             lines.forEach(line => {
                 line = line.trim();
-                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})\s*-\s*\d{1,2}\/\d{1,2}\)/);
+                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if (weekMatch) {
                     const [_, day, month] = weekMatch;
                     currentStartDate = new Date(2026, parseInt(month)-1, parseInt(day));
@@ -239,7 +238,7 @@
                 const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
                 if (dayMatch && currentStartDate) {
                     const content = dayMatch[2].trim();
-                    if (content.toUpperCase() === 'X') return;
+                    if (content.toUpperCase() === 'X' || !content) return;
 
                     const dayOffset = vnDays[dayMatch[1].toUpperCase()];
                     const entryDate = new Date(currentStartDate);
@@ -253,7 +252,7 @@
                         if (priceMatch) {
                             const price = toBigInt(priceMatch[1]);
                             const note = noteMatch ? noteMatch[1].trim() : "";
-                            const name = note ? "MUA SẮM" : "CHI PHÍ";
+                            const name = note ? "PURCHASE" : "EXPENSE";
 
                             let entry = spendings.find(s => s.date === isoDate);
                             if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
@@ -264,7 +263,7 @@
                     });
                 }
             });
-            if (count > 0) { await sync(); render(); alert(`Đã nhập thành công ${count} mục.`); }
+            if (count > 0) { await sync(); render(); alert(`Imported ${count} items.`); }
         }
 
         function updateChart(range = '14d') {
@@ -275,7 +274,7 @@
                 const slice = allSorted.slice(-14);
                 labels = slice.map(s => s.date.split('-').reverse().slice(0, 2).join('/'));
                 data = slice.map(s => Number(s.cost) / 1000);
-                labelText = "Chi tiêu gần đây";
+                labelText = "Spending";
             } else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
                 const filtered = allSorted.filter(s => { const d = new Date(s.date + "T00:00:00"); return d.getMonth() === selectedMonth; });
@@ -283,12 +282,12 @@
                 labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
                 data = new Array(daysInMonth).fill(0);
                 filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
-                labelText = "Tháng này";
+                labelText = "Monthly View";
             } else if (range === 'year') {
                 data = new Array(12).fill(0);
                 allSorted.forEach(s => { if (new Date(s.date + "T00:00:00").getFullYear() === 2026) data[new Date(s.date + "T00:00:00").getMonth()] += Number(s.cost) / 1000; });
-                labels = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
-                labelText = "Cả năm 2026";
+                labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                labelText = "Yearly";
             }
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
@@ -297,7 +296,7 @@
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
             const sum = data.reduce((a, b) => a + b, 0);
-            document.getElementById('stats-summary').innerHTML = `Tổng chi: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b>`;
+            document.getElementById('stats-summary').innerHTML = `Sum: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b>`;
         }
 
         function applyAtmosphere(t) {
@@ -327,12 +326,12 @@
         function calcCmd(c) { calcVal += " " + c + " "; updateCalc(); }
         function calcClear() { calcVal = ""; updateCalc(); }
         function updateCalc() { document.getElementById('calc-display').innerText = calcVal || "0"; }
-        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Lỗi"; } }
+        function calcSolve() { try { calcVal = eval(calcVal).toString(); updateCalc(); } catch(e) { calcVal = "Error"; } }
 
         function addBill() { const n = document.getElementById('bill-name').value, a = document.getElementById('bill-amount').value; if(n&&a){ bills.push({name:n, amount:a}); render(); sync(); } }
         function deleteBill(i) { bills.splice(i,1); render(); sync(); }
         async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); if(s){ s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }}
-        async function clearAllData(){ if(confirm("Xóa sạch toàn bộ dữ liệu?")){ spendings=[]; await sync(); render(); }}
+        async function clearAllData(){ if(confirm("Wipe all data?")){ spendings=[]; await sync(); render(); }}
         function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); document.querySelector(`[onclick="showView('${v}')"]`).classList.add('active'); }
         
         document.getElementById('date-input').value = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Ho_Chi_Minh"})).toISOString().split('T')[0];
