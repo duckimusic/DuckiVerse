@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.9.1 - Shift & Clean</title>
+    <title>SpendLog 12.9.2 - The Neutralizer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -268,15 +268,18 @@
             lines.forEach(line => {
                 line = line.trim();
                 
-                // DATE OFFSET FORMULA: Shift back 1 day automatically
+                // THE NEUTRALIZER: Convert any input Monday date back by 1 day
                 const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if (weekMatch) {
                     let d = parseInt(weekMatch[1]);
                     let m = parseInt(weekMatch[2]);
-                    let tempDate = new Date(2026, m - 1, d);
-                    tempDate.setDate(tempDate.getDate() - 1); // Shift back
-                    const finalD = String(tempDate.getDate()).padStart(2, '0');
-                    const finalM = String(tempDate.getMonth() + 1).padStart(2, '0');
+                    
+                    // Logic: Turn input (5/1) into (4/1) or (23/3) into (22/3)
+                    let baseDate = new Date(2026, m - 1, d);
+                    baseDate.setDate(baseDate.getDate() - 1);
+                    
+                    const finalD = String(baseDate.getDate()).padStart(2, '0');
+                    const finalM = String(baseDate.getMonth() + 1).padStart(2, '0');
                     anchorISO = `2026-${finalM}-${finalD}`; 
                     return;
                 }
@@ -313,7 +316,7 @@
                     });
                 }
             });
-            if (count > 0) { await sync(); render(); alert(`Synced ${count} items.`); }
+            if (count > 0) { await sync(); render(); alert(`Neutralized and synced ${count} items.`); }
         }
 
         function updateChart(range = '14d') {
