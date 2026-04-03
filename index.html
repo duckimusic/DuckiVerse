@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.9 - Auto-Fix Edition</title>
+    <title>SpendLog 12.9.0 - Weekly Insights</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -84,13 +84,15 @@
 
         .chart-container { background: var(--card); border-radius: 12px; padding: 15px; border: var(--border); height: 260px; margin-bottom: 15px; backdrop-filter: blur(10px); }
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .weekly-row { display: flex; justify-content: space-between; margin-top: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-family: monospace; font-size: 13px; }
     </style>
 </head>
 <body>
 
     <div id="splash-screen">
         <div class="splash-logo">$</div>
-        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">SPENDLOG 12.8</div>
+        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">SPENDLOG 12.9</div>
         <div class="splash-bar"><div class="splash-progress"></div></div>
     </div>
 
@@ -218,10 +220,45 @@
             updateChart('14d');
         }
 
+        function renderWeeklySummary() {
+            const summaryDiv = document.getElementById('stats-summary');
+            if (spendings.length === 0) return;
+
+            const sorted = [...spendings].sort((a, b) => a.date.localeCompare(b.date));
+            const weeks = {};
+            
+            sorted.forEach(s => {
+                const d = new Date(s.date + "T00:00:00");
+                const day = d.getDay(); 
+                const diff = d.getDate() - day + (day === 0 ? -6 : 1); 
+                const monday = new Date(d.setDate(diff));
+                const weekKey = monday.toISOString().split('T')[0];
+                
+                if (!weeks[weekKey]) weeks[weekKey] = 0n;
+                weeks[weekKey] += s.cost;
+            });
+
+            let html = `<div style="margin-top:15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top:10px;">
+                        <b style="font-size:11px; color:#8b949e; text-transform:uppercase; letter-spacing:1px;">Weekly Mon-Sun Summary</b>`;
+            
+            Object.keys(weeks).sort().reverse().forEach(wk => {
+                const start = new Date(wk + "T00:00:00");
+                const end = new Date(wk + "T00:00:00");
+                end.setDate(start.getDate() + 6);
+                
+                const range = `${start.getDate()}/${start.getMonth()+1} - ${end.getDate()}/${end.getMonth()+1}`;
+                html += `
+                    <div class="weekly-row">
+                        <span style="color:#8b949e">${range}</span>
+                        <b style="color:var(--gold)">${formatK(weeks[wk])}</b>
+                    </div>`;
+            });
+            html += `</div>`;
+            summaryDiv.innerHTML += html;
+        }
+
         async function importData() {
             let rawInput = document.getElementById('bulk-input').value;
-            
-            // AUTO-FIX: Swap problematic range for working range
             rawInput = rawInput.replace("(5/1 - 11/1)", "(6/1 - 10/1)");
 
             if (!rawInput) return alert("Please paste data first!");
@@ -244,11 +281,9 @@
                 if (dayMatch && anchorISO) {
                     const content = dayMatch[2].trim();
                     if (content.toUpperCase() === 'X' || !content) return;
-
                     const dateObj = new Date(anchorISO + "T00:00:00");
                     dateObj.setDate(dateObj.getDate() + vnDays[dayMatch[1].toUpperCase()]);
                     const isoDate = dateObj.toISOString().split('T')[0];
-
                     const parts = content.split('+');
                     parts.forEach(part => {
                         const priceMatch = part.match(/(\d+k|\d+)/i);
@@ -256,11 +291,9 @@
                         if (priceMatch) {
                             const price = toBigInt(priceMatch[1]);
                             const note = noteMatch ? noteMatch[1].trim() : "";
-                            const name = note ? "PURCHASE" : "EXPENSE";
-
                             let entry = spendings.find(s => s.date === isoDate);
                             if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
-                            entry.details.push({ name, price, note });
+                            entry.details.push({ name: note ? "PURCHASE" : "EXPENSE", price, note });
                             entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
                             count++;
                         }
@@ -300,7 +333,8 @@
                 options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
             const sum = data.reduce((a, b) => a + b, 0);
-            document.getElementById('stats-summary').innerHTML = `Sum: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b>`;
+            document.getElementById('stats-summary').innerHTML = `Total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(sum)}k</b>`;
+            renderWeeklySummary();
         }
 
         function applyAtmosphere(t) {
