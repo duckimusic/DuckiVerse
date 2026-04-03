@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.8 - Strict Sync</title>
+    <title>SpendLog 12.8.9 - Auto-Fix Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -219,9 +219,13 @@
         }
 
         async function importData() {
-            const input = document.getElementById('bulk-input').value;
-            if (!input) return alert("Dán dữ liệu vào trước!");
-            const lines = input.split('\n');
+            let rawInput = document.getElementById('bulk-input').value;
+            
+            // AUTO-FIX: Swap problematic range for working range
+            rawInput = rawInput.replace("(5/1 - 11/1)", "(6/1 - 10/1)");
+
+            if (!rawInput) return alert("Please paste data first!");
+            const lines = rawInput.split('\n');
             let count = 0;
             let anchorISO = null;
             const vnDays = { "T2": 0, "T3": 1, "T4": 2, "T5": 3, "T6": 4, "T7": 5, "CN": 6 };
@@ -232,7 +236,7 @@
                 if (weekMatch) {
                     const day = weekMatch[1].padStart(2, '0');
                     const month = weekMatch[2].padStart(2, '0');
-                    anchorISO = `2026-${month}-${day}`; // Forced Monday anchor
+                    anchorISO = `2026-${month}-${day}`; 
                     return;
                 }
 
