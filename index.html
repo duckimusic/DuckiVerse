@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 12.8.2 - Full Restoration</title>
+    <title>SpendLog 12.8.3 - Intelligence Patch</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -95,8 +95,8 @@
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0;" onclick="updateChart('14d')">LATEST</button>
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px; margin: 0; background: var(--gold); color:#000" onclick="updateChart('year')">YEAR</button>
             <select id="month-picker" onchange="updateChart('month')" style="flex: 2; margin: 0; height: 42px;">
-                <option value="0">January</option><option value="1">February</option><option value="2" selected>March</option>
-                <option value="3">April</option><option value="4">May</option><option value="5">June</option>
+                <option value="0">January</option><option value="1">February</option><option value="2">March</option>
+                <option value="3" selected>April</option><option value="4">May</option><option value="5">June</option>
                 <option value="6">July</option><option value="7">August</option><option value="8">September</option>
                 <option value="9">October</option><option value="10">November</option><option value="11">December</option>
             </select>
@@ -126,7 +126,7 @@
             </select>
         </div>
         <button class="btn" style="background:var(--green)" onclick="importData()">SYNC BULK REPORT</button>
-        <textarea id="bulk-input" rows="3" placeholder="Paste bulk report..." style="margin-top:12px"></textarea>
+        <textarea id="bulk-input" rows="8" placeholder="Paste bulk report here..." style="margin-top:12px; font-size: 11px;"></textarea>
         <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
@@ -135,7 +135,7 @@
         <div class="calc-screen" id="calc-display">0</div>
         <div class="calc-grid">
             <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
-            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calc6('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
+            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
             <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
             <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
         </div>
@@ -177,20 +177,17 @@
         function render() {
             let grandTotal = 0n;
             const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
-            
             document.getElementById('daily-list').innerHTML = sorted.map(s => {
                 grandTotal += s.cost;
                 const dateObj = new Date(s.date + "T00:00:00");
                 const dayName = dateObj.toLocaleDateString('en-US', {weekday:'short'});
                 const [y, m, d] = s.date.split('-');
-                
                 return `<div class="receipt">
                     <div class="r-head">${dayName} ${d}/${m}/${y}</div>
-                    ${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note">${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}
+                    ${s.details.map((item, idx) => `<div class="r-row"><div><b>${item.name}</b>${item.note?`<span class="r-note"> - ${item.note}</span>`:''}</div><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}
                     <div class="r-total"><span>TOTAL</span><span>${formatK(s.cost)}</span></div>
                 </div>`;
             }).join('');
-            
             document.getElementById('bill-list').innerHTML = bills.map((b, i) => `<div class="receipt" style="background:var(--card); color:var(--text); border-left: 4px solid var(--danger)"><div class="r-row"><span>${b.name}</span><b>${b.amount} <span onclick="deleteBill(${i})" style="cursor:pointer; margin-left:12px">×</span></b></div></div>`).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             updateChart('14d');
@@ -201,22 +198,53 @@
             if (!input) return alert("Paste data first!");
             const lines = input.split('\n');
             let count = 0;
+            let currentStartDate = null;
+            const vnDays = { "T2": 0, "T3": 1, "T4": 2, "T5": 3, "T6": 4, "T7": 5, "CN": 6 };
+
             lines.forEach(line => {
-                const match = line.match(/(\d{1,2}\/\d{1,2})\s+(.+?)\s+(\d+k|\d+)/i);
-                if (match) {
-                    const [_, dateStr, name, priceStr] = match;
-                    const [d, m] = dateStr.split('/');
-                    const year = new Date().getFullYear();
-                    const isoDate = `${year}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-                    let entry = spendings.find(s => s.date === isoDate);
-                    if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
-                    entry.details.push({ name: name.toUpperCase().trim(), price: toBigInt(priceStr), note: "Bulk Import" });
-                    entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
-                    count++;
+                line = line.trim();
+                // Match Week Range: (5/1 - 11/1)
+                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})\s*-\s*\d{1,2}\/\d{1,2}\)/);
+                if (weekMatch) {
+                    const [_, day, month] = weekMatch;
+                    const year = 2026; // Setting to 2026 based on your current project context
+                    currentStartDate = new Date(year, parseInt(month)-1, parseInt(day));
+                    return;
+                }
+
+                // Match Day Entry: T2 : 12k (nước ngọt) or T6 : 98k (đặt đồ ăn) + 12k (nước)
+                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
+                if (dayMatch && currentStartDate) {
+                    const dayKey = dayMatch[1].toUpperCase();
+                    const content = dayMatch[2].trim();
+                    if (content.toUpperCase() === 'X') return;
+
+                    const dayOffset = vnDays[dayKey];
+                    const entryDate = new Date(currentStartDate);
+                    entryDate.setDate(currentStartDate.getDate() + dayOffset);
+                    const isoDate = entryDate.toISOString().split('T')[0];
+
+                    const parts = content.split('+');
+                    parts.forEach(part => {
+                        const priceMatch = part.match(/(\d+k|\d+)/i);
+                        const noteMatch = part.match(/\((.+?)\)/);
+                        if (priceMatch) {
+                            const price = toBigInt(priceMatch[1]);
+                            const note = noteMatch ? noteMatch[1] : "";
+                            const name = note ? note.substring(0, 15).toUpperCase() : "EXPENSE";
+
+                            let entry = spendings.find(s => s.date === isoDate);
+                            if (!entry) { entry = { date: isoDate, cost: 0n, details: [] }; spendings.push(entry); }
+                            entry.details.push({ name, price, note });
+                            entry.cost = entry.details.reduce((acc, curr) => acc + curr.price, 0n);
+                            count++;
+                        }
+                    });
                 }
             });
-            if (count > 0) { await sync(); render(); document.getElementById('bulk-input').value = ""; alert(`Imported ${count} items.`); }
-            else alert("Format: DD/MM Name Price (31/03 Lunch 50k)");
+
+            if (count > 0) { await sync(); render(); document.getElementById('bulk-input').value = ""; alert(`Successfully parsed ${count} items.`); }
+            else alert("Error: Use (DD/MM - DD/MM) week headers followed by T2-CN entries.");
         }
 
         function updateChart(range = '14d') {
@@ -230,18 +258,18 @@
                 labelText = "Records";
             } else if (range === 'month') {
                 const selectedMonth = parseInt(document.getElementById('month-picker').value);
-                const currentYear = new Date().getFullYear();
-                const filtered = allSorted.filter(s => { const d = new Date(s.date); return d.getMonth() === selectedMonth && d.getFullYear() === currentYear; });
+                const currentYear = 2026;
+                const filtered = allSorted.filter(s => { const d = new Date(s.date + "T00:00:00"); return d.getMonth() === selectedMonth && d.getFullYear() === currentYear; });
                 const daysInMonth = new Date(currentYear, selectedMonth + 1, 0).getDate();
                 labels = Array.from({length: daysInMonth}, (_, i) => (i + 1).toString());
                 data = new Array(daysInMonth).fill(0);
                 filtered.forEach(s => { const dayNum = parseInt(s.date.split('-')[2]); data[dayNum - 1] += Number(s.cost) / 1000; });
-                labelText = "Monthly";
+                labelText = "Monthly View";
             } else if (range === 'year') {
                 data = new Array(12).fill(0);
-                allSorted.forEach(s => { if (new Date(s.date).getFullYear() === new Date().getFullYear()) data[new Date(s.date).getMonth()] += Number(s.cost) / 1000; });
+                allSorted.forEach(s => { if (new Date(s.date + "T00:00:00").getFullYear() === 2026) data[new Date(s.date + "T00:00:00").getMonth()] += Number(s.cost) / 1000; });
                 labels = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-                labelText = "Annual";
+                labelText = "Annual Trend";
             }
             if (myChart) myChart.destroy();
             myChart = new Chart(ctx, {
@@ -258,22 +286,10 @@
             const fx = document.getElementById('scanlines');
             fx.style.setProperty('--fx', t==='retro'?'block':'none');
             r.setProperty('--font','sans-serif'); r.setProperty('--glow','none'); r.setProperty('--filter','none'); r.setProperty('--receipt-tilt','none'); r.setProperty('--bg-img','none'); r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--card','rgba(13, 17, 23, 0.8)');
-            if(t==='retro'){ 
-                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); 
-                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 15px #ff00ff'); 
-            }
-            if(t==='cyber'){ 
-                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); 
-                r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.85)'); r.setProperty('--glow','0 0 20px #00f3ff');
-            }
-            if(t==='steam'){ 
-                r.setProperty('--bg-img',"url('https://cdn.80.lv/api/upload/post/8664/images/5dce5ead5f8fd/widen_2440x0.jpg')"); 
-                r.setProperty('--accent','#d4af37'); r.setProperty('--text','#f0e4d0'); r.setProperty('--receipt-bg','#b08d57'); r.setProperty('--receipt-text','#2a1a0a'); r.setProperty('--card','rgba(30, 20, 10, 0.85)'); r.setProperty('--font','serif'); r.setProperty('--border','1px solid #d4af37');
-            }
-            if(t==='horror'){ 
-                r.setProperty('--bg-img',"url('https://i.redd.it/5js9ixbe6d5b1.jpg')"); 
-                r.setProperty('--filter','sepia(0.6) contrast(1.3) brightness(0.85) blur(0.4px)'); r.setProperty('--receipt-tilt','rotate(-1.2deg)'); r.setProperty('--font','monospace'); r.setProperty('--card','rgba(45, 45, 20, 0.85)'); r.setProperty('--accent','#666'); r.setProperty('--border','1px solid #444');
-            }
+            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace'); r.setProperty('--border','2px solid #ff00ff'); r.setProperty('--glow','0 0 15px #ff00ff'); }
+            if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); r.setProperty('--accent','#00f3ff'); r.setProperty('--text','#fff'); r.setProperty('--card','rgba(0,0,0,0.85)'); r.setProperty('--glow','0 0 20px #00f3ff'); }
+            if(t==='steam'){ r.setProperty('--bg-img',"url('https://cdn.80.lv/api/upload/post/8664/images/5dce5ead5f8fd/widen_2440x0.jpg')"); r.setProperty('--accent','#d4af37'); r.setProperty('--text','#f0e4d0'); r.setProperty('--receipt-bg','#b08d57'); r.setProperty('--receipt-text','#2a1a0a'); r.setProperty('--card','rgba(30, 20, 10, 0.85)'); r.setProperty('--font','serif'); r.setProperty('--border','1px solid #d4af37'); }
+            if(t==='horror'){ r.setProperty('--bg-img',"url('https://i.redd.it/5js9ixbe6d5b1.jpg')"); r.setProperty('--filter','sepia(0.6) contrast(1.3) brightness(0.85) blur(0.4px)'); r.setProperty('--receipt-tilt','rotate(-1.2deg)'); r.setProperty('--font','monospace'); r.setProperty('--card','rgba(45, 45, 20, 0.85)'); r.setProperty('--accent','#666'); r.setProperty('--border','1px solid #444'); }
         }
 
         async function saveEntry() {
