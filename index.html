@@ -125,9 +125,7 @@
         <div id="dhammapada-container" style="background: var(--glass-card); padding: 30px 20px; border-radius: 20px; border: var(--border); text-align: center; backdrop-filter: blur(var(--blur)); box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; margin-bottom: 30px;">
             <div style="font-size: 24px; color: var(--gold); margin-bottom: 15px; opacity: 0.8;">☸</div>
             <div id="quote-chapter" style="font-size: 11px; color: var(--gold); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; margin-bottom: 15px;">HỆ THỐNG</div>
-            <div id="quote-text" style="font-size: 18px; line-height: 1.8; color: var(--text); font-family: 'Times New Roman', serif; font-style: italic; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center;">
-                "Đang tải dữ liệu từ Cloud..."
-            </div>
+            <div id="quote-text" style="font-size: 18px; line-height: 1.8; color: var(--text); font-family: 'Times New Roman', serif; font-style: italic; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center;">"Đang tải..."</div>
             <div id="quote-ref" style="font-size: 13px; color: #8b949e; font-weight: bold; margin-bottom: 25px;">— Kệ số 0</div>
             <div style="display: flex; gap: 10px; justify-content: center;">
                 <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--gold); border: 1px solid var(--gold); flex: 1; padding: 10px; font-size: 12px;" onclick="copySutra()">SAO CHÉP</button>
@@ -137,14 +135,30 @@
 
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); margin-bottom: 30px;">
             <div style="font-size: 10px; color: var(--gold); margin-bottom: 10px; font-weight: bold; text-align: center; letter-spacing: 1px;">NHẬP PHÁP CÚ CLOUD</div>
-            <textarea id="bulk-sutra-input" rows="3" placeholder="Dán nội dung từ kinhphapcu.vn..."></textarea>
-            <button id="btn-save-sutra" class="btn" style="background: var(--gold); color: #000; padding: 10px; font-size: 12px; margin-top: 10px;" onclick="saveSutra()">LƯU VÀO CLOUD</button>
+            
+            <select id="sutra-chapter-select">
+                <option>Phẩm Song Yếu</option><option>Phẩm Không Phóng Giật</option><option>Phẩm Tâm</option>
+                <option>Phẩm Hoa</option><option>Phẩm Kẻ Ngu</option><option>Phẩm Hiền Trí</option>
+                <option>Phẩm A La Hán</option><option>Phẩm Ngàn</option><option>Phẩm Ác</option>
+                <option>Phẩm Hình Phạt</option><option>Phẩm Già</option><option>Phẩm Tự Ngã</option>
+                <option>Phẩm Thế Gian</option><option>Phẩm Phật Đà</option><option>Phẩm An Lạc</option>
+                <option>Phẩm Hỷ Ái</option><option>Phẩm Phẫn Nộ</option><option>Phẩm Cấu Uế</option>
+                <option>Phẩm Pháp Trụ</option><option>Phẩm Đạo</option><option>Phẩm Tạp Lục</option>
+                <option>Phẩm Địa Ngục</option><option>Phẩm Voi</option><option>Phẩm Tham Ái</option>
+                <option>Phẩm Tỳ Kheo</option><option>Phẩm Bà La Môn</option>
+            </select>
+
+            <textarea id="sutra-content-input" rows="4" placeholder="Nhập câu kệ vào đây..."></textarea>
+            
+            <input type="text" id="sutra-id-input" value="Kệ số " placeholder="Ví dụ: Kệ số 1">
+
+            <button class="btn" style="background: var(--gold); color: #000; margin-top: 10px;" onclick="saveSutra()">LƯU VÀO CLOUD</button>
+            <button class="btn" style="background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 10px; font-size: 10px; padding: 5px;" onclick="clearZenData()">XOÁ HẾT PHÁP CÚ</button>
         </div>
 
         <div id="zen-res" style="text-align: center; font-weight: 900; color: var(--gold); font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">HÔM NAY TU TẬP</div>
         <div class="wheel-container">
-            <div id="pointer"></div>
-            <div class="wheel-hub"></div>
+            <div id="pointer"></div><div class="wheel-hub"></div>
             <canvas id="wheel-canvas" width="800" height="800"></canvas>
         </div>
         <button class="btn" style="background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 20px;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
@@ -154,16 +168,13 @@
         <div class="input-group">
             <label style="font-size: 11px; color: #8b949e; font-weight: bold;">THEME ATMOSPHERE</label>
             <select onchange="applyAtmosphere(this.value)">
-                <option value="default">Matrix (Default)</option>
-                <option value="glass">Glassmorphism</option>
-                <option value="retro">80s Retro</option>
-                <option value="cyber">Cyberpunk</option>
-                <option value="horror">Uncanny horror</option>
+                <option value="default">Matrix (Default)</option><option value="glass">Glassmorphism</option>
+                <option value="retro">80s Retro</option><option value="cyber">Cyberpunk</option><option value="horror">Uncanny horror</option>
             </select>
         </div>
-        <textarea id="bulk-input" rows="8" placeholder="Paste (01/04) report here..."></textarea>
+        <textarea id="bulk-input" rows="8" placeholder="Paste report (T2: 50k...) here..."></textarea>
         <button class="btn" style="background: var(--green); margin-top: 10px;" onclick="importData()">SYNC BULK REPORT</button>
-        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
+        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE ALL SPENDING</button>
     </div>
 
     <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
@@ -175,9 +186,7 @@
             <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
             <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
         </div>
-        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
     </div>
-
     <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
 
     <script>
@@ -188,8 +197,7 @@
         window.onload = () => {
             setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
             document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
-            drawWheel();
-            load();
+            drawWheel(); load();
         };
 
         function formatK(n) { return Math.floor(Number(n)/1000).toLocaleString() + "k"; }
@@ -197,10 +205,7 @@
 
         async function sync() {
             try {
-                const data = spendings.map(s => {
-                    if(s.isSutra) return s;
-                    return { ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) };
-                });
+                const data = spendings.map(s => s.isSutra ? s : { ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) });
                 await fetch(API, {method:"POST", body:JSON.stringify(data)});
             } catch(e) { alert("Sync failed!"); }
         }
@@ -209,12 +214,8 @@
             try {
                 const res = await fetch(API);
                 const data = await res.json() || [];
-                spendings = data.map(s => {
-                    if(s.isSutra) return s;
-                    return { ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) };
-                });
-                render();
-                refreshQuote();
+                spendings = data.map(s => s.isSutra ? s : { ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) });
+                render(); refreshQuote();
             } catch(e) { console.error("Load failed"); }
         }
 
@@ -223,95 +224,39 @@
             const bills = spendings.filter(x => !x.isSutra).sort((a,b) => b.date.localeCompare(a.date));
             document.getElementById('daily-list').innerHTML = bills.map(s => {
                 grandTotal += s.cost;
-                return `<div class="receipt">
-                    <div class="r-head">${s.date}</div>
-                    ${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}
-                    <div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div>
-                </div>`;
+                return `<div class="receipt"><div class="r-head">${s.date}</div>${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             updateChart('14d');
         }
 
-        // --- IMPORT DATA CẢI TIẾN ---
-        async function importData() {
-            const raw = document.getElementById('bulk-input').value;
-            if (!raw.trim()) return;
+        // --- ZEN LOGIC (FIXED & IMPROVED) ---
+        async function saveSutra() {
+            const chapter = document.getElementById('sutra-chapter-select').value;
+            const content = document.getElementById('sutra-content-input').value.trim();
+            const rawId = document.getElementById('sutra-id-input').value;
+            const idMatch = rawId.match(/\d+/);
 
-            const lines = raw.split('\n');
-            let anchorDate = null; 
-            let count = 0;
-            const vnMap = {"T2":0, "T3":1, "T4":2, "T5":3, "T6":4, "T7":5, "CN":6};
+            if(!content || !idMatch) return alert("Vui lòng nhập đủ nội dung và số kệ!");
 
-            lines.forEach(line => {
-                // Quét ngày mốc trong ngoặc (dd/mm). VD: "(06/04 - 12/04)" -> lấy 06/04
-                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
-                if (weekMatch) {
-                    const d = parseInt(weekMatch[1]);
-                    const m = parseInt(weekMatch[2]) - 1;
-                    anchorDate = new Date(2026, m, d);
-                    return;
-                }
-
-                // Quét dòng dữ liệu: "T2: 50k (Ăn)"
-                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
-                if (dayMatch && anchorDate) {
-                    const dayKey = dayMatch[1].toUpperCase();
-                    const offset = vnMap[dayKey];
-                    
-                    const targetDate = new Date(anchorDate);
-                    targetDate.setDate(anchorDate.getDate() + offset);
-                    const iso = targetDate.toISOString().split('T')[0];
-
-                    const parts = dayMatch[2].split('+');
-                    let s = spendings.find(x => x.date === iso && !x.isSutra);
-                    if (!s) {
-                        s = {date: iso, cost: 0n, details: []};
-                        spendings.push(s);
-                    }
-
-                    parts.forEach(p => {
-                        const priceM = p.match(/(\d+)[kK]?/);
-                        const nameM = p.match(/\((.+?)\)/);
-                        if (priceM) {
-                            s.details.push({
-                                name: (nameM ? nameM[1] : "EXPENSE").toUpperCase().trim(),
-                                price: toBigInt(priceM[1])
-                            });
-                            count++;
-                        }
-                    });
-                    s.cost = s.details.reduce((a, b) => a + b.price, 0n);
-                }
-            });
-
-            if (count > 0) {
-                await sync(); 
-                render(); 
-                alert(`Đã đồng bộ ${count} món vào Cloud!`); 
-                document.getElementById('bulk-input').value = ""; 
-            } else {
-                alert("Sai định dạng rồi! Ghi đúng kiểu T2: 50k (Tên) nhé.");
-            }
+            const idStr = rawId.replace("Kệ số ", "").trim();
+            
+            // Xoá câu cũ nếu trùng số kệ (Để ghi đè/sửa)
+            spendings = spendings.filter(s => !(s.isSutra && String(s.r) === idStr));
+            
+            spendings.push({ isSutra: true, c: chapter, v: content, r: idStr });
+            await sync();
+            
+            document.getElementById('sutra-content-input').value = "";
+            alert(`Đã lưu/cập nhật Kệ số ${idStr} lên Cloud!`);
+            refreshQuote();
         }
 
-        // --- CÁC HÀM KHÁC GIỮ NGUYÊN ---
-        function saveSutra() {
-            const input = document.getElementById('bulk-sutra-input');
-            const raw = input.value.trim();
-            if(!raw) return;
-            const lines = raw.split('\n').filter(l => l.trim() !== "");
-            const lastLine = lines[lines.length - 1];
-            const idMatch = lastLine.match(/Kệ số (\d+)/);
-            if(idMatch) {
-                const id = parseInt(idMatch[1]);
-                const chapter = lines[0].includes("Phẩm") ? lines[0].trim() : "PHẨM CHƯA RÕ";
-                const content = lines.slice(lines[0].includes("Phẩm") ? 1 : 0, -1).join('\n');
-                if(!spendings.some(s => s.isSutra && s.r === id)) {
-                    spendings.push({ isSutra: true, c: chapter, v: content, r: id });
-                    sync(); input.value = ""; alert("Đã sync kệ!"); refreshQuote();
-                } else alert("Kệ này có rồi!");
-            } else alert("Thiếu 'Kệ số...'!");
+        async function clearZenData() {
+            if(confirm("Xoá toàn bộ dữ liệu Pháp Cú trên Cloud?")) {
+                spendings = spendings.filter(s => !s.isSutra);
+                await sync(); render(); refreshQuote();
+            }
         }
 
         function refreshQuote() {
@@ -326,109 +271,83 @@
         function copySutra() {
             const text = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})\nNguồn: kinhphapcu.vn`;
             navigator.clipboard.writeText(text);
-            const btn = event.currentTarget; btn.innerText = "COPIED!";
-            setTimeout(() => btn.innerText = "SAO CHÉP", 2000);
+            alert("Đã sao chép!");
         }
 
-        function drawWheel() {
-            const canvas = document.getElementById('wheel-canvas');
-            const ctx = canvas.getContext('2d');
-            const arc = Math.PI * 2 / 8;
-            ctx.clearRect(0, 0, 800, 800);
-            for(let i=0; i<8; i++) {
-                ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117";
-                ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
-                ctx.save(); ctx.translate(400, 400); ctx.rotate(i*arc + arc/2);
-                ctx.textAlign = "center"; ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
-                ctx.font = "bold 42px sans-serif";
-                const w = PATHS[i].split(' ');
-                if(w.length > 1) { ctx.fillText(w[0], 250, -20); ctx.fillText(w[1], 250, 35); }
-                else ctx.fillText(PATHS[i], 250, 5);
-                ctx.restore();
-            }
-        }
-
-        function spin() {
-            wheelAngle += Math.floor(Math.random() * 360) + 3600;
-            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`;
-            document.getElementById('zen-res').innerText = "ĐANG QUÁN CHIẾU...";
-            setTimeout(() => {
-                const idx = Math.floor(((270 - (wheelAngle % 360) + 360) % 360) / 45);
-                document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase();
-            }, 5000);
-        }
-
-        async function saveEntry() {
-            const d = document.getElementById('date-input').value; if(!d) return;
-            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
-            if(names.length !== costs.length) return alert("Items and Prices must match!");
-            let s = spendings.find(x => x.date === d && !x.isSutra); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
-            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim() || "EXPENSE", price:toBigInt(costs[i])}));
-            s.cost = s.details.reduce((a, b) => a + b.price, 0n);
-            await sync(); render();
-            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
+        // --- OTHER LOGIC (IMPORT, CHARTS, THEME) ---
+        async function importData() {
+            const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
+            const lines = raw.split('\n'); let anchor = null, count = 0;
+            const vn = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
+            lines.forEach(line => {
+                const wm = line.match(/\((\d{1,2})\/(\d{1,2})/);
+                if(wm) { anchor = new Date(2026, parseInt(wm[2])-1, parseInt(wm[1])); return; }
+                const dm = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
+                if(dm && anchor) {
+                    const dObj = new Date(anchor); dObj.setDate(dObj.getDate() + vn[dm[1].toUpperCase()]);
+                    const iso = dObj.toISOString().split('T')[0];
+                    const parts = dm[2].split('+');
+                    let s = spendings.find(x => x.date === iso && !x.isSutra);
+                    if(!s) { s = {date:iso, cost:0n, details:[]}; spendings.push(s); }
+                    parts.forEach(p => {
+                        const pm = p.match(/(\d+)[kK]?/), nm = p.match(/\((.+?)\)/);
+                        if(pm) { s.details.push({name:(nm?nm[1]:"EXPENSE").toUpperCase().trim(), price:toBigInt(pm[1]||pm[0])}); count++; }
+                    });
+                    s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+                }
+            });
+            if(count>0){ await sync(); render(); alert(`Synced ${count} items!`); document.getElementById('bulk-input').value=""; }
         }
 
         function updateChart(range) {
             const ctx = document.getElementById('spendingChart').getContext('2d');
-            const billsOnly = spendings.filter(x => !x.isSutra).sort((a,b) => a.date.localeCompare(b.date));
-            let dataArr = billsOnly.slice(-14);
+            const dataArr = spendings.filter(x => !x.isSutra).sort((a,b) => a.date.localeCompare(b.date)).slice(-14);
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
-                type: 'line',
-                data: { 
-                    labels: dataArr.map(s => s.date.slice(5).replace('-','/')), 
-                    datasets: [{ 
-                        data: dataArr.map(s => Number(s.cost)/1000), 
-                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
-                        tension: 0.3, fill: true, 
-                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
-                        pointRadius: 2
-                    }]
-                },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+                type: 'line', data: { labels: dataArr.map(s => s.date.slice(5)), datasets: [{ data: dataArr.map(s => Number(s.cost)/1000), borderColor: '#58a6ff', tension: 0.3 }] },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
             });
-            const sum = dataArr.reduce((a, b) => a + Number(b.cost), 0);
-            document.getElementById('stats-summary').innerHTML = `Last 14 days: <b style="color:var(--accent)">${new Intl.NumberFormat().format(Math.floor(sum/1000))}k</b>`;
+        }
+
+        function drawWheel() {
+            const canvas = document.getElementById('wheel-canvas'); const ctx = canvas.getContext('2d'); const arc = Math.PI*2/8;
+            for(let i=0; i<8; i++) {
+                ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117"; ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
+                ctx.save(); ctx.translate(400, 400); ctx.rotate(i*arc+arc/2); ctx.textAlign="center"; ctx.fillStyle=i%2?"#fff":"#f2cc60"; ctx.font="bold 42px sans-serif";
+                ctx.fillText(PATHS[i], 250, 10); ctx.restore();
+            }
+        }
+
+        function spin() {
+            wheelAngle += Math.floor(Math.random()*360) + 3600;
+            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`;
+            setTimeout(() => { const idx = Math.floor(((270-(wheelAngle%360)+360)%360)/45); document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); }, 5000);
+        }
+
+        async function saveEntry() {
+            const d = document.getElementById('date-input').value; 
+            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
+            if(!d || names.length !== costs.length) return;
+            let s = spendings.find(x => x.date === d && !x.isSutra); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
+            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
+            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+            await sync(); render();
         }
 
         function applyAtmosphere(t) {
             const r = document.documentElement.style;
-            document.getElementById('scanlines').style.setProperty('--fx', t==='retro'?'block':'none');
-            r.setProperty('--bg','#0d1117'); r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3');
-            r.setProperty('--font','-apple-system, sans-serif'); r.setProperty('--bg-img','none');
-            if(t==='glass'){
-                r.setProperty('--bg-img',"url('https://static.vecteezy.com/system/resources/previews/075/488/883/non_2x/glass-frame-with-a-glass-morphism-effect-on-a-modern-abstract-digital-background-vector.jpg')");
-                r.setProperty('--accent','#fff');
-            } else if(t==='retro'){
-                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace');
-            } else if(t==='horror'){
-                r.setProperty('--accent','#800000'); r.setProperty('--font','serif');
-            }
-            if (spendings.length > 0) updateChart('14d');
+            if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); }
+            else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); }
+            updateChart();
         }
 
-        let cV = "";
+        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
         function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
-        function calcInput(v) { cV += v; uC(); }
-        function calcCmd(c) { cV += " " + c + " "; uC(); }
-        function calcClear() { cV = ""; uC(); }
-        function uC() { document.getElementById('calc-display').innerText = cV || "0"; }
-        function calcSolve() { try { cV = eval(cV.replace('÷','/').replace('×','*')).toString(); uC(); } catch(e) { cV = "Error"; uC(); } }
-        function showView(v){ 
-            document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); 
-            document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); 
-            document.getElementById(`view-${v}`).classList.add('active'); 
-            event.currentTarget.classList.add('active'); 
-        }
-        async function deleteLine(d, i) { 
-            const s = spendings.find(x=>x.date===d && !x.isSutra); 
-            s.details.splice(i,1); 
-            s.cost=s.details.reduce((a,b)=>a+b.price,0n); 
-            if(!s.details.length) spendings=spendings.filter(x=>!(x.date===d && !x.isSutra)); 
-            await sync(); render(); 
-        }
-        async function clearAllData(){ if(confirm("Wipe all data?")){ spendings=[]; await sync(); render(); }}
+        function calcInput(v) { document.getElementById('calc-display').innerText += v; }
+        function calcClear() { document.getElementById('calc-display').innerText = ""; }
+        function calcSolve() { try { document.getElementById('calc-display').innerText = eval(document.getElementById('calc-display').innerText); } catch(e) {} }
+        async function clearAllData(){ if(confirm("Xoá hết tiền?")){ spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
+        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
     </script>
 </body>
 </html>
