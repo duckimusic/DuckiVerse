@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 13.1 - Uncanny Glass Edition</title>
+    <title>SpendLog 13.1 - Cloud Zen Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -15,7 +15,6 @@
             --blur: 15px; --glass-card: rgba(13, 17, 23, 0.8);
         }
 
-        /* SPLASH SCREEN */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0d1117; z-index: 10000;
@@ -66,13 +65,11 @@
         .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
         .btn:active { transform: scale(0.98); opacity: 0.9; }
 
-        /* WHEEL STYLE */
         .wheel-container { position: relative; width: 300px; height: 300px; margin: 25px auto; }
         #wheel-canvas { width: 100%; height: 100%; transition: 5s cubic-bezier(0.15, 0, 0.1, 1); }
         #pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--gold); z-index: 10; }
         .wheel-hub { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; background: var(--gold); border-radius: 50%; border: 3px solid var(--bg); z-index: 5; }
 
-        /* CALC */
         #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(30px); border-left: var(--border); z-index: 2001; transition: 0.5s; padding: 25px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
@@ -88,7 +85,7 @@
 
     <div id="splash-screen">
         <div class="splash-logo">☸</div>
-        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.1 ZEN</div>
+        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.1 CLOUD ZEN</div>
         <div class="splash-bar"><div class="splash-progress"></div></div>
     </div>
 
@@ -124,72 +121,34 @@
         <div id="stats-summary" style="margin-top:15px; background: var(--glass-card); padding: 15px; border-radius: 12px; border: var(--border); backdrop-filter: blur(var(--blur));"></div>
     </div>
 
-<div id="view-zen" class="view">
-    
-    <div id="dhammapada-container" style="background: var(--glass-card); padding: 30px 20px; border-radius: 20px; border: var(--border); text-align: center; backdrop-filter: blur(var(--blur)); box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; margin-bottom: 30px;">
-        
-        <div style="font-size: 24px; color: var(--gold); margin-bottom: 15px; opacity: 0.8;">☸</div>
-        
-        <div id="quote-chapter" style="font-size: 11px; color: var(--gold); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; margin-bottom: 15px;">PHẨM SONG YẾU</div>
-        
-        <div id="quote-text" style="font-size: 18px; line-height: 1.8; color: var(--text); font-family: 'Times New Roman', serif; font-style: italic; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center;">
-            "Ý dẫn đầu các pháp, Ý làm chủ, ý tạo..."
+    <div id="view-zen" class="view">
+        <div id="dhammapada-container" style="background: var(--glass-card); padding: 30px 20px; border-radius: 20px; border: var(--border); text-align: center; backdrop-filter: blur(var(--blur)); box-shadow: 0 15px 35px rgba(0,0,0,0.2); position: relative; margin-bottom: 30px;">
+            <div style="font-size: 24px; color: var(--gold); margin-bottom: 15px; opacity: 0.8;">☸</div>
+            <div id="quote-chapter" style="font-size: 11px; color: var(--gold); letter-spacing: 3px; font-weight: 800; text-transform: uppercase; margin-bottom: 15px;">HỆ THỐNG</div>
+            <div id="quote-text" style="font-size: 18px; line-height: 1.8; color: var(--text); font-family: 'Times New Roman', serif; font-style: italic; margin-bottom: 20px; min-height: 100px; display: flex; align-items: center; justify-content: center;">
+                "Đang tải dữ liệu từ Cloud..."
+            </div>
+            <div id="quote-ref" style="font-size: 13px; color: #8b949e; font-weight: bold; margin-bottom: 25px;">— Kệ số 0</div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--gold); border: 1px solid var(--gold); flex: 1; padding: 10px; font-size: 12px;" onclick="copySutra()">SAO CHÉP</button>
+                <button class="btn" style="background: var(--gold); color: #000; flex: 1; padding: 10px; font-size: 12px;" onclick="refreshQuote()">CÂU KỆ KHÁC</button>
+            </div>
         </div>
-        
-        <div id="quote-ref" style="font-size: 13px; color: #8b949e; font-weight: bold; margin-bottom: 25px;">— Kệ số 1</div>
 
-        <div style="display: flex; gap: 10px; justify-content: center;">
-            <button class="btn" style="background: rgba(255,255,255,0.1); color: var(--gold); border: 1px solid var(--gold); flex: 1; padding: 10px; font-size: 12px;" onclick="copySutra()">SAO CHÉP BÀI PHÁP</button>
-            <button class="btn" style="background: var(--gold); color: #000; flex: 1; padding: 10px; font-size: 12px;" onclick="refreshQuote()">CÂU KỆ KHÁC</button>
+        <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); margin-bottom: 30px;">
+            <div style="font-size: 10px; color: var(--gold); margin-bottom: 10px; font-weight: bold; text-align: center; letter-spacing: 1px;">NHẬP PHÁP CÚ CLOUD</div>
+            <textarea id="bulk-sutra-input" rows="3" placeholder="Dán nội dung từ kinhphapcu.vn..."></textarea>
+            <button id="btn-save-sutra" class="btn" style="background: var(--gold); color: #000; padding: 10px; font-size: 12px; margin-top: 10px;" onclick="saveSutra()">LƯU VÀO CLOUD</button>
         </div>
+
+        <div id="zen-res" style="text-align: center; font-weight: 900; color: var(--gold); font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">HÔM NAY TU TẬP</div>
+        <div class="wheel-container">
+            <div id="pointer"></div>
+            <div class="wheel-hub"></div>
+            <canvas id="wheel-canvas" width="800" height="800"></canvas>
+        </div>
+        <button class="btn" style="background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 20px;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
     </div>
-
-    <div id="zen-res" style="text-align: center; font-weight: 900; color: var(--gold); font-size: 20px; margin-bottom: 15px; letter-spacing: 2px;">HÔM NAY TU TẬP</div>
-    <div class="wheel-container">
-        <div id="pointer"></div>
-        <div class="wheel-hub"></div>
-        <canvas id="wheel-canvas" width="800" height="800"></canvas>
-    </div>
-    <button class="btn" style="background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 20px;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
-
-    <div style="margin-top: 40px; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 20px;">
-        <a href="https://kinhphapcu.vn" target="_blank" style="color: var(--gold); text-decoration: none; font-size: 13px; font-weight: bold; opacity: 0.7;">kinhphapcu.vn</a>
-        <div style="font-size: 10px; color: #555; margin-top: 5px;">© 2022 by Kinhphapcu.vn</div>
-    </div>
-</div>
-
-<script>
-    // Dữ liệu mẫu (m có thể nạp full 423 câu vào đây)
-    const DHAMMAPADA = [
-        { c: "Phẩm Song Yếu", v: "Ý dẫn đầu các pháp,\nÝ làm chủ, ý tạo,\nNếu với ý ô nhiễm,\nNói năng hay hành động,\nKhổ não bước theo sau,\nNhư xe chân vật kéo.", r: 1 },
-        { c: "Phẩm Song Yếu", v: "Ý dẫn đầu các pháp,\nÝ làm chủ, ý tạo,\nNếu với ý thanh tịnh,\nNói năng hay hành động,\nHạnh phúc bước theo sau,\nNhư bóng không rời hình.", r: 2 },
-        { c: "Phẩm Tỉnh Giác", v: "Không làm mọi điều ác,\nThành tựu các hạnh lành,\nTâm ý giữ trong sạch,\nChính lời chư Phật dạy.", r: 183 }
-        // ... Thêm các câu khác từ 1 - 423 ở đây
-    ];
-
-    function refreshQuote() {
-        const q = DHAMMAPADA[Math.floor(Math.random() * DHAMMAPADA.length)];
-        document.getElementById('quote-chapter').innerText = q.c.toUpperCase();
-        document.getElementById('quote-text').innerText = `"${q.v}"`;
-        document.getElementById('quote-ref').innerText = `— Kệ số ${q.r}`;
-        
-        // Hiệu ứng fade in nhẹ
-        const card = document.getElementById('dhammapada-container');
-        card.style.opacity = 0;
-        setTimeout(() => card.style.opacity = 1, 50);
-    }
-
-    function copySutra() {
-        const text = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})\nNguồn: kinhphapcu.vn`;
-        navigator.clipboard.writeText(text);
-        
-        // Feedback cho user
-        const btn = event.target;
-        const oldText = btn.innerText;
-        btn.innerText = "ĐÃ SAO CHÉP!";
-        setTimeout(() => btn.innerText = oldText, 2000);
-    }
-</script>
 
     <div id="view-tools" class="view">
         <div class="input-group">
@@ -238,7 +197,11 @@
 
         async function sync() {
             try {
-                const data = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
+                // Chỉ BigInt hóa những object là tiền (không có isSutra)
+                const data = spendings.map(s => {
+                    if(s.isSutra) return s;
+                    return { ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) };
+                });
                 await fetch(API, {method:"POST", body:JSON.stringify(data)});
             } catch(e) { alert("Sync failed!"); }
         }
@@ -247,15 +210,20 @@
             try {
                 const res = await fetch(API);
                 const data = await res.json() || [];
-                spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) }));
+                spendings = data.map(s => {
+                    if(s.isSutra) return s;
+                    return { ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) };
+                });
                 render();
+                refreshQuote();
             } catch(e) { console.error("Load failed"); }
         }
 
         function render() {
             let grandTotal = 0n;
-            const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
-            document.getElementById('daily-list').innerHTML = sorted.map(s => {
+            // Chỉ render những cái KHÔNG PHẢI KINH
+            const bills = spendings.filter(x => !x.isSutra).sort((a,b) => b.date.localeCompare(a.date));
+            document.getElementById('daily-list').innerHTML = bills.map(s => {
                 grandTotal += s.cost;
                 return `<div class="receipt">
                     <div class="r-head">${s.date}</div>
@@ -267,6 +235,52 @@
             updateChart('14d');
         }
 
+        // --- LOGIC ZEN (CLOUD) ---
+        function saveSutra() {
+            const input = document.getElementById('bulk-sutra-input');
+            const raw = input.value.trim();
+            if(!raw) return;
+
+            const lines = raw.split('\n').filter(l => l.trim() !== "");
+            const lastLine = lines[lines.length - 1];
+            const idMatch = lastLine.match(/Kệ số (\d+)/);
+
+            if(idMatch) {
+                const id = parseInt(idMatch[1]);
+                const chapter = lines[0].includes("Phẩm") ? lines[0].trim() : "PHẨM CHƯA RÕ";
+                const content = lines.slice(lines[0].includes("Phẩm") ? 1 : 0, -1).join('\n');
+
+                if(!spendings.some(s => s.isSutra && s.r === id)) {
+                    spendings.push({ isSutra: true, c: chapter, v: content, r: id });
+                    sync();
+                    input.value = "";
+                    alert("Đã đồng bộ bài kệ lên Cloud!");
+                    refreshQuote();
+                } else {
+                    alert("Kệ này đã tồn tại!");
+                }
+            } else { alert("Thiếu dòng 'Kệ số...' rồi!"); }
+        }
+
+        function refreshQuote() {
+            const sutras = spendings.filter(s => s.isSutra);
+            const pool = sutras.length > 0 ? sutras : [{c:"Hệ thống", v:"Chưa có dữ liệu Cloud.\nHãy tự thêm bài kệ đầu tiên.", r:0}];
+            const q = pool[Math.floor(Math.random() * pool.length)];
+            document.getElementById('quote-chapter').innerText = q.c.toUpperCase();
+            document.getElementById('quote-text').innerText = `"${q.v}"`;
+            document.getElementById('quote-ref').innerText = `— Kệ số ${q.r}`;
+            const card = document.getElementById('dhammapada-container');
+            card.style.opacity = 0; setTimeout(() => card.style.opacity = 1, 50);
+        }
+
+        function copySutra() {
+            const text = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})\nNguồn: kinhphapcu.vn`;
+            navigator.clipboard.writeText(text);
+            const btn = event.currentTarget; btn.innerText = "COPIED!";
+            setTimeout(() => btn.innerText = "SAO CHÉP", 2000);
+        }
+
+        // --- WHEEL & CHARTS ---
         function drawWheel() {
             const canvas = document.getElementById('wheel-canvas');
             const ctx = canvas.getContext('2d');
@@ -299,7 +313,7 @@
             const d = document.getElementById('date-input').value; if(!d) return;
             const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
             if(names.length !== costs.length) return alert("Items and Prices must match!");
-            let s = spendings.find(x => x.date === d); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
+            let s = spendings.find(x => x.date === d && !x.isSutra); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
             names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim() || "EXPENSE", price:toBigInt(costs[i])}));
             s.cost = s.details.reduce((a, b) => a + b.price, 0n);
             await sync(); render();
@@ -316,7 +330,7 @@
                 const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if(weekMatch) {
                     let base = new Date(2026, parseInt(weekMatch[2])-1, parseInt(weekMatch[1]));
-                    base.setDate(base.getDate() - 1); // Neutralizer
+                    base.setDate(base.getDate() - 1);
                     anchor = base.toISOString().split('T')[0]; return;
                 }
                 const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
@@ -324,7 +338,7 @@
                     const dObj = new Date(anchor + "T00:00:00"); dObj.setDate(dObj.getDate() + vn[dayMatch[1].toUpperCase()]);
                     const iso = dObj.toISOString().split('T')[0];
                     const parts = dayMatch[2].split('+');
-                    let s = spendings.find(x => x.date === iso);
+                    let s = spendings.find(x => x.date === iso && !x.isSutra);
                     if(!s) { s = {date:iso, cost:0n, details:[]}; spendings.push(s); }
                     parts.forEach(p => {
                         const pm = p.match(/(\d+)[kK]?/), nm = p.match(/\((.+?)\)/);
@@ -338,9 +352,8 @@
 
         function updateChart(range) {
             const ctx = document.getElementById('spendingChart').getContext('2d');
-            const allSorted = [...spendings].sort((a,b) => a.date.localeCompare(b.date));
-            let dataArr = allSorted.slice(-14);
-            
+            const billsOnly = spendings.filter(x => !x.isSutra).sort((a,b) => a.date.localeCompare(b.date));
+            let dataArr = billsOnly.slice(-14);
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
@@ -351,50 +364,28 @@
                         borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
                         tension: 0.3, fill: true, 
                         backgroundColor: 'rgba(88, 166, 255, 0.1)',
-                        pointBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
                         pointRadius: 2
                     }]
                 },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
             });
             const sum = dataArr.reduce((a, b) => a + Number(b.cost), 0);
-            document.getElementById('stats-summary').innerHTML = `Last 14 days total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(Math.floor(sum/1000))}k</b>`;
+            document.getElementById('stats-summary').innerHTML = `Last 14 days: <b style="color:var(--accent)">${new Intl.NumberFormat().format(Math.floor(sum/1000))}k</b>`;
         }
 
         function applyAtmosphere(t) {
             const r = document.documentElement.style;
             document.getElementById('scanlines').style.setProperty('--fx', t==='retro'?'block':'none');
-            
-            // RESET
-            r.setProperty('--font','-apple-system, sans-serif'); r.setProperty('--bg-img','none'); r.setProperty('--bg','#0d1117');
-            r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); r.setProperty('--filter','none');
-            r.setProperty('--view-filter','none'); r.setProperty('--blur','15px'); r.setProperty('--glass-card','rgba(13, 17, 23, 0.8)');
-            r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--receipt-tilt','none');
-
+            r.setProperty('--bg','#0d1117'); r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3');
+            r.setProperty('--font','-apple-system, sans-serif'); r.setProperty('--bg-img','none');
             if(t==='glass'){
                 r.setProperty('--bg-img',"url('https://static.vecteezy.com/system/resources/previews/075/488/883/non_2x/glass-frame-with-a-glass-morphism-effect-on-a-modern-abstract-digital-background-vector.jpg')");
-                r.setProperty('--blur','20px'); r.setProperty('--glass-card','rgba(255, 255, 255, 0.1)');
-                r.setProperty('--border','1px solid rgba(255,255,255,0.2)'); r.setProperty('--accent','#fff');
-                r.setProperty('--text','#fff');
+                r.setProperty('--accent','#fff');
+            } else if(t==='retro'){
+                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); r.setProperty('--font','monospace');
+            } else if(t==='horror'){
+                r.setProperty('--accent','#800000'); r.setProperty('--font','serif');
             }
-            else if(t==='retro'){
-                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')");
-                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14');
-                r.setProperty('--font','monospace');
-            }
-            else if(t==='cyber'){
-                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')");
-                r.setProperty('--accent','#00f3ff'); r.setProperty('--card','rgba(0,0,0,0.85)');
-            }
-            else if(t==='horror'){
-                r.setProperty('--bg-img',"url('https://studybreaks.com/wp-content/uploads/2021/12/Image-from-iOS-1-2.jpg')");
-                r.setProperty('--filter','grayscale(0.5) contrast(1.2) sepia(0.2)');
-                r.setProperty('--font','serif'); r.setProperty('--accent','#800000');
-                r.setProperty('--receipt-tilt','rotateX(10deg) rotateY(-5deg)');
-                r.setProperty('--receipt-bg','#b0a090'); r.setProperty('--receipt-text','#000');
-            }
-            
-            // Redraw chart to apply new accent color
             if (spendings.length > 0) updateChart('14d');
         }
 
@@ -405,10 +396,20 @@
         function calcClear() { cV = ""; uC(); }
         function uC() { document.getElementById('calc-display').innerText = cV || "0"; }
         function calcSolve() { try { cV = eval(cV.replace('÷','/').replace('×','*')).toString(); uC(); } catch(e) { cV = "Error"; uC(); } }
-        
-        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); event.currentTarget.classList.add('active'); }
-        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }
-        async function clearAllData(){ if(confirm("Wipe all data permanently?")){ spendings=[]; await sync(); render(); }}
+        function showView(v){ 
+            document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); 
+            document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); 
+            document.getElementById(`view-${v}`).classList.add('active'); 
+            event.currentTarget.classList.add('active'); 
+        }
+        async function deleteLine(d, i) { 
+            const s = spendings.find(x=>x.date===d && !x.isSutra); 
+            s.details.splice(i,1); 
+            s.cost=s.details.reduce((a,b)=>a+b.price,0n); 
+            if(!s.details.length) spendings=spendings.filter(x=>!(x.date===d && !x.isSutra)); 
+            await sync(); render(); 
+        }
+        async function clearAllData(){ if(confirm("Wipe all data?")){ spendings=[]; await sync(); render(); }}
     </script>
 </body>
 </html>
