@@ -15,6 +15,7 @@
             --blur: 15px; --glass-card: rgba(13, 17, 23, 0.8);
         }
 
+        /* SPLASH SCREEN NÂNG CẤP */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0d1117; z-index: 10000;
@@ -28,9 +29,16 @@
             animation: pulse 2s infinite ease-in-out;
         }
         .splash-bar { width: 150px; height: 2px; background: rgba(255,255,255,0.1); margin-top: 30px; position: relative; overflow: hidden; }
-        .splash-progress { width: 0%; height: 100%; background: var(--accent); position: absolute; animation: load 2s forwards; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        .splash-progress { width: 0%; height: 100%; background: var(--accent); position: absolute; animation: load 2.5s forwards linear; }
+        
+        #welcome-msg { 
+            display: none; text-align: center; margin-top: 20px; 
+            animation: fadeIn 0.5s ease-in, pulse 1.5s infinite; 
+        }
+
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         @keyframes load { to { width: 100%; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .hide-splash { opacity: 0; visibility: hidden; }
 
         body { 
@@ -88,9 +96,18 @@
 <body>
 
     <div id="splash-screen">
-        <div class="splash-logo">☸</div>
-        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.5 _ How I Spend</div>
-        <div class="splash-bar"><div class="splash-progress"></div></div>
+        <div id="splash-content" style="display: flex; flex-direction: column; align-items: center;">
+            <div class="splash-logo">☸</div>
+            <div id="splash-status" style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.5 _ How I Spend</div>
+            <div id="loader-wrapper" class="splash-bar">
+                <div class="splash-progress"></div>
+            </div>
+        </div>
+
+        <div id="welcome-msg">
+            <div style="font-size: 22px; color: var(--accent); font-weight: bold; margin-bottom: 10px;">Welcome to How I Spent !</div>
+            <div style="font-size: 11px; color: #8b949e; letter-spacing: 1px;">(press Spacebar or tap the screen)</div>
+        </div>
     </div>
 
     <div id="scanlines"></div>
@@ -206,7 +223,7 @@
         let spendings = [], myChart = null, wheelAngle = 0;
 
         // ==========================================
-        // 1. DUCKI SOUND ENGINE (DIRECT WAV LINKS)
+        // 1. DUCKI SOUND ENGINE
         // ==========================================
         const USER_SOUNDS = {
             open: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/openapp.wav",
@@ -218,20 +235,27 @@
         function playSfx(type) {
             if (USER_SOUNDS[type]) {
                 const audio = new Audio(USER_SOUNDS[type]);
-                // picktab (click) giảm âm lượng nhẹ để không bị chói
                 audio.volume = (type === 'click') ? 0.5 : 0.8;
                 audio.currentTime = 0; 
                 audio.play().catch(e => console.log("Sound error: ", e));
             }
         }
 
-        // Tự động phát tiếng mở app khi user click lần đầu (bypass Autoplay Policy)
-        window.addEventListener('click', () => { 
-            playSfx('open'); 
-        }, { once: true });
+        // ==========================================
+        // 2. SPLASH LOGIC (NÂNG CẤP)
+        // ==========================================
+        let isLoaded = false;
+        let appStarted = false;
 
         window.onload = () => {
-            setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
+            // Giả lập thời gian load (Thanh loading chạy trong 2.5s)
+            setTimeout(() => {
+                isLoaded = true;
+                document.getElementById('splash-content').style.display = 'none';
+                document.getElementById('welcome-msg').style.display = 'block';
+            }, 2600);
+
+            // Khởi tạo các thành phần App ngầm
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date-input').value = today;
             document.getElementById('range-start').value = today;
@@ -245,6 +269,21 @@
             drawWheel(); load();
         };
 
+        function startApp() {
+            if (isLoaded && !appStarted) {
+                appStarted = true;
+                playSfx('open');
+                document.getElementById('splash-screen').classList.add('hide-splash');
+            }
+        }
+
+        // Lắng nghe phím Space và Chạm để mở App
+        window.addEventListener('keydown', (e) => { if(e.code === 'Space') startApp(); });
+        window.addEventListener('click', startApp);
+
+        // ==========================================
+        // 3. CORE LOGIC (GIỮ NGUYÊN)
+        // ==========================================
         function formatK(n) { return Math.floor(Number(n)/1000).toLocaleString() + "k"; }
         function toBigInt(val) { return BigInt(String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '') || 0); }
 
