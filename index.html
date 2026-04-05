@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 13.5 - Sound Edition</title>
+    <title>SpendLog 13.5 - Zero Delay</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -15,7 +15,7 @@
             --blur: 15px; --glass-card: rgba(13, 17, 23, 0.8);
         }
 
-        /* SPLASH SCREEN NÂNG CẤP */
+        /* SPLASH SCREEN */
         #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #0d1117; z-index: 10000;
@@ -223,7 +223,7 @@
         let spendings = [], myChart = null, wheelAngle = 0;
 
         // ==========================================
-        // 1. DUCKI SOUND ENGINE
+        // 1. DUCKI SOUND ENGINE (OPTIMIZED)
         // ==========================================
         const USER_SOUNDS = {
             open: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/openapp.wav",
@@ -232,30 +232,41 @@
             success: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/calculated.wav"
         };
 
-        function playSfx(type) {
-            if (USER_SOUNDS[type]) {
-                const audio = new Audio(USER_SOUNDS[type]);
-                audio.volume = (type === 'click') ? 0.5 : 0.8;
-                audio.currentTime = 0; 
-                audio.play().catch(e => console.log("Sound error: ", e));
+        const AUDIO_POOL = {};
+
+        function preloadSounds() {
+            for (const [key, url] of Object.entries(USER_SOUNDS)) {
+                const audio = new Audio();
+                audio.src = url;
+                audio.preload = "auto";
+                audio.load();
+                AUDIO_POOL[key] = audio;
             }
         }
 
+        function playSfx(type) {
+            if (AUDIO_POOL[type]) {
+                const soundClone = AUDIO_POOL[type].cloneNode();
+                soundClone.volume = (type === 'click') ? 0.4 : 0.7;
+                soundClone.play().catch(e => console.log("Audio trigger pending..."));
+            }
+        }
+
+        preloadSounds();
+
         // ==========================================
-        // 2. SPLASH LOGIC (NÂNG CẤP)
+        // 2. SPLASH LOGIC
         // ==========================================
         let isLoaded = false;
         let appStarted = false;
 
         window.onload = () => {
-            // Giả lập thời gian load (Thanh loading chạy trong 2.5s)
             setTimeout(() => {
                 isLoaded = true;
                 document.getElementById('splash-content').style.display = 'none';
                 document.getElementById('welcome-msg').style.display = 'block';
             }, 2600);
 
-            // Khởi tạo các thành phần App ngầm
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('date-input').value = today;
             document.getElementById('range-start').value = today;
@@ -266,7 +277,8 @@
             const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             monthPicker.innerHTML = monthNames.map((name, i) => `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${name}</option>`).join('');
 
-            drawWheel(); load();
+            drawWheel(); 
+            load(); 
         };
 
         function startApp() {
@@ -277,12 +289,11 @@
             }
         }
 
-        // Lắng nghe phím Space và Chạm để mở App
         window.addEventListener('keydown', (e) => { if(e.code === 'Space') startApp(); });
         window.addEventListener('click', startApp);
 
         // ==========================================
-        // 3. CORE LOGIC (GIỮ NGUYÊN)
+        // 3. CORE LOGIC
         // ==========================================
         function formatK(n) { return Math.floor(Number(n)/1000).toLocaleString() + "k"; }
         function toBigInt(val) { return BigInt(String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '') || 0); }
@@ -408,6 +419,7 @@
                 ctx.fillText(PATHS[i], 250, 10); ctx.restore();
             }
         }
+
         function spin() { 
             let count = 0;
             const timer = setInterval(() => { playSfx('wheel'); if(++count > 20) clearInterval(timer); }, 150);
