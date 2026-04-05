@@ -3,251 +3,304 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HIS 2.0 - Zen Financial Engine</title>
+    <title>SpendLog 13.0 - Zen Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <style>
-        :root {
-            --bg: #05070a; --card: #111418; --accent: #f2cc60; 
-            --text: #e6edf3; --subtext: #8b949e; --border: 1px solid #30363d;
-            --danger: #f85149; --success: #3fb950;
+    <style id="theme-style">
+        :root { 
+            --bg: #0d1117; --card: rgba(13, 17, 23, 0.8); --accent: #58a6ff; 
+            --green: #3fb950; --gold: #f2cc60; --danger: #f85149;
+            --text: #e6edf3; --font: -apple-system, sans-serif;
+            --border: 1px solid rgba(255,255,255,0.1); --fx: none;
+            --receipt-bg: #fff; --receipt-text: #111; --bg-img: none;
         }
-        body { background: var(--bg); color: var(--text); font-family: -apple-system, sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
 
         /* SPLASH SCREEN */
-        #splash {
+        #splash-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #05070a; display: flex; align-items: center; justify-content: center;
-            z-index: 99999; transition: opacity 0.8s ease, visibility 0.8s;
+            background: #0d1117; z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: opacity 0.8s ease, visibility 0.8s;
         }
-        .zen-ring {
-            width: 80px; height: 80px; border: 2px solid var(--accent);
-            border-radius: 50%; border-top-color: transparent;
-            animation: spin-anim 1s linear infinite;
+        .splash-logo {
+            width: 80px; height: 80px; border: 4px solid var(--accent);
+            border-radius: 20%; display: flex; align-items: center; justify-content: center;
+            font-weight: 900; font-size: 32px; color: var(--accent);
+            animation: pulse 2s infinite ease-in-out;
         }
-        @keyframes spin-anim { to { transform: rotate(360deg); } }
-        .splash-hidden { opacity: 0; visibility: hidden; }
+        .splash-bar { width: 150px; height: 2px; background: rgba(255,255,255,0.1); margin-top: 30px; position: relative; overflow: hidden; }
+        .splash-progress { width: 0%; height: 100%; background: var(--accent); position: absolute; animation: load 2s forwards; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes load { to { width: 100%; } }
+        .hide-splash { opacity: 0; visibility: hidden; }
 
-        /* NAVIGATION */
-        .nav-bar { display: flex; position: sticky; top: 0; background: rgba(17, 20, 24, 0.95); backdrop-filter: blur(10px); border-bottom: var(--border); z-index: 1000; }
-        .nav-item { flex: 1; padding: 18px 0; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: var(--subtext); text-transform: uppercase; letter-spacing: 1px; }
-        .nav-item.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        body { 
+            background: var(--bg); background-image: var(--bg-img); background-size: cover; background-position: center; background-attachment: fixed;
+            color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; transition: 0.8s ease; overflow-x: hidden; 
+        }
 
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; animation: fadeIn 0.4s ease; }
+        #scanlines { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; opacity: 0.15; display: var(--fx);
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+            background-size: 100% 3px, 3px 100%;
+        }
+
+        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--card); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(15px); }
+        .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
+        .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
+        
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--filter, none); }
         .view.active { display: block; }
 
-        /* COMPONENTS */
-        .card { background: var(--card); border: var(--border); border-radius: 20px; padding: 15px; margin-bottom: 20px; }
-        input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; background: #000; border: 1px solid #333; color: var(--accent); border-radius: 10px; box-sizing: border-box; }
-        .btn-gold { width: 100%; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 12px; font-weight: 900; cursor: pointer; text-transform: uppercase; margin-top: 10px; }
+        .receipt { 
+            background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; margin-bottom: 15px; 
+            font-family: monospace; border: var(--border); transition: 0.4s;
+        }
+        .r-head { border-bottom: 1px dashed rgba(0,0,0,0.2); text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
+        .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
+        .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; }
+        .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 12px; }
 
-        /* WHEEL AREA */
-        .wheel-wrap { position: relative; width: 320px; height: 320px; margin: 25px auto; }
-        #wheel-canvas { width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1); }
-        #pointer { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 18px solid transparent; border-right: 18px solid transparent; border-top: 30px solid var(--accent); z-index: 10; }
-        .wheel-hub { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: var(--accent); border-radius: 50%; border: 4px solid var(--bg); z-index: 5; }
+        .input-group { background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 15px; backdrop-filter: blur(12px); }
+        input, textarea, select { width: 100%; padding: 12px; margin: 6px 0; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--accent); border-radius: 8px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
 
-        .receipt { background: #fff; color: #000; padding: 15px; border-radius: 2px; margin-bottom: 15px; font-family: monospace; border-bottom: 4px solid #999; }
-        .footer { position: fixed; bottom: 0; width: 100%; background: var(--accent); color: #000; padding: 18px; text-align: center; font-weight: 900; font-size: 20px; z-index: 900; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* WHEEL STYLE */
+        .wheel-container { position: relative; width: 300px; height: 300px; margin: 25px auto; }
+        #wheel-canvas { width: 100%; height: 100%; transition: 5s cubic-bezier(0.15, 0, 0.1, 1); }
+        #pointer { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 25px solid var(--gold); z-index: 10; }
+        .wheel-hub { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; background: var(--gold); border-radius: 50%; border: 3px solid var(--bg); z-index: 5; }
+
+        /* CALC */
+        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; }
+        #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(30px); border-left: var(--border); z-index: 2001; transition: 0.5s; padding: 25px; box-sizing: border-box; }
+        #calc-panel.open { right: 0; }
+        .calc-screen { width: 100%; height: 85px; background: #000; color: var(--green); text-align: right; font-size: 34px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+        .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid #333; }
+
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; }
     </style>
 </head>
 <body>
 
-    <div id="splash"><div class="zen-ring"></div></div>
-
-    <div class="nav-bar">
-        <div class="nav-item active" onclick="nav('home')">Home</div>
-        <div class="nav-item" onclick="nav('lost')">L.O.S.T</div>
-        <div class="nav-item" onclick="nav('zen')">Eightfold</div>
-        <div class="nav-item" onclick="nav('set')">Settings</div>
+    <div id="splash-screen">
+        <div class="splash-logo">☸</div>
+        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.0 ZEN</div>
+        <div class="splash-bar"><div class="splash-progress"></div></div>
     </div>
 
-    <div id="view-home" class="view active">
-        <div class="card" style="height: 250px;"><canvas id="mainChart"></canvas></div>
-        <div style="text-align:center; color:var(--subtext); font-size:12px;">Dòng chảy chi tiêu 7 ngày gần nhất</div>
+    <div id="scanlines"></div>
+
+    <div class="nav-tabs">
+        <div class="nav-tab active" onclick="showView('daily')">Logs</div>
+        <div class="nav-tab" onclick="showView('analytics')">Graphs</div>
+        <div class="nav-tab" onclick="showView('zen')">Eightfold</div>
+        <div class="nav-tab" onclick="showView('tools')">Settings</div>
     </div>
 
-    <div id="view-lost" class="view">
-        <div class="card">
-            <input type="date" id="in-date">
-            <input type="text" id="in-name" placeholder="Tên món đồ (vd: Cafe)">
-            <input type="number" id="in-price" placeholder="Giá tiền (k)">
-            <button class="btn-gold" onclick="saveOne()">LƯU HÓA ĐƠN</button>
+    <div id="view-daily" class="view active">
+        <div class="input-group">
+            <input type="date" id="date-input">
+            <input type="text" id="item-input" placeholder="Name (Gas + Coffee)">
+            <input type="text" id="cost-input" placeholder="Price (50k + 25k)">
+            <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
-        <div id="lost-history"></div>
+        <div id="daily-list"></div>
+    </div>
+
+    <div id="view-analytics" class="view">
+        <div style="display: flex; gap: 6px; margin-bottom: 15px;">
+            <button class="btn" style="flex: 1; padding: 10px; font-size: 11px;" onclick="updateChart('14d')">RECENT</button>
+            <select id="month-picker" onchange="updateChart('month')" style="flex: 1; margin: 0;">
+                <option value="3">April</option><option value="4">May</option>
+            </select>
+        </div>
+        <div style="background: var(--card); border-radius: 12px; padding: 15px; height: 260px; border: var(--border);">
+            <canvas id="spendingChart"></canvas>
+        </div>
+        <div id="stats-summary" style="margin-top:15px; background: var(--card); padding: 15px; border-radius: 12px; border: var(--border);"></div>
     </div>
 
     <div id="view-zen" class="view">
-        <div id="zen-res" style="text-align: center; font-weight: 900; color: var(--accent); height: 40px; font-size: 24px;">HÔM NAY TU TẬP</div>
-        <div class="wheel-wrap">
+        <div id="zen-res" style="text-align: center; font-weight: 900; color: var(--gold); font-size: 24px; min-height: 30px; margin-bottom: 10px;">HÔM NAY TU TẬP</div>
+        <div class="wheel-container">
             <div id="pointer"></div>
             <div class="wheel-hub"></div>
             <canvas id="wheel-canvas" width="800" height="800"></canvas>
         </div>
-        <button class="btn-gold" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
+        <button class="btn" style="background: var(--gold); color: #000;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
     </div>
 
-    <div id="view-set" class="view">
-        <div class="card">
-            <div style="font-size: 11px; color: var(--subtext); margin-bottom: 10px; font-weight: 800;">NHẬP DỮ LIỆU NHANH (TUẦN)</div>
-            <textarea id="bulk-input" placeholder="(01/04 - 07/04)&#10;T2 : 35k (Com trua) + 20 (Cafe)&#10;T3 : 50K (Xang)"></textarea>
-            <button class="btn-gold" style="background: var(--success); color: #fff;" onclick="bulkImport()">IMPORT DỮ LIỆU</button>
+    <div id="view-tools" class="view">
+        <div class="input-group">
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold;">THEME</label>
+            <select onchange="applyAtmosphere(this.value)">
+                <option value="default">Matrix</option>
+                <option value="retro">80s Retro</option>
+                <option value="cyber">Cyberpunk</option>
+                <option value="horror">Uncanny</option>
+            </select>
         </div>
-        <button class="btn-gold" style="background:transparent; border:1px solid var(--danger); color:var(--danger)" onclick="resetData()">RESET TOÀN BỘ</button>
+        <textarea id="bulk-input" rows="8" placeholder="Paste (01/04) report here..."></textarea>
+        <button class="btn" style="background: var(--green); margin-top: 10px;" onclick="importData()">SYNC BULK REPORT</button>
+        <button class="btn" style="background:transparent; border:1px solid var(--danger); color:var(--danger); margin-top:40px" onclick="clearAllData()">WIPE DATA</button>
     </div>
 
-    <div class="footer">TOTAL: <span id="total-val">0k</span></div>
+    <div id="calc-toggle" onclick="toggleCalc()">CALC</div>
+    <div id="calc-panel">
+        <div class="calc-screen" id="calc-display">0</div>
+        <div class="calc-grid">
+            <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn" onclick="calcCmd('/')">÷</div>
+            <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn" onclick="calcCmd('*')">×</div>
+            <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn" onclick="calcCmd('-')">-</div>
+            <div class="calc-btn" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcClear()">C</div><div class="calc-btn" onclick="calcSolve()">=</div><div class="calc-btn" onclick="calcCmd('+')">+</div>
+        </div>
+        <button class="btn" style="margin-top:20px" onclick="toggleCalc()">CLOSE</button>
+    </div>
+
+    <div class="total-footer">TOTAL: <span id="grand-total-val">0k</span></div>
 
     <script>
         const API = "https://lil-flower-35d8.davidbong808.workers.dev/";
         const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
-        let logs = [], chart = null, wheelAngle = 0;
+        let spendings = [], myChart = null, wheelAngle = 0;
 
         window.onload = () => {
-            document.getElementById('in-date').value = new Date().toISOString().split('T')[0];
+            setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
+            document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
             drawWheel();
             load();
-            setTimeout(() => document.getElementById('splash').classList.add('splash-hidden'), 2000);
         };
 
+        function formatK(n) { return Math.floor(Number(n)/1000).toLocaleString() + "k"; }
+        function toBigInt(val) { return BigInt(String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '') || 0); }
+
+        async function sync() {
+            const data = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
+            await fetch(API, {method:"POST", body:JSON.stringify(data)});
+        }
+
         async function load() {
-            try {
-                const res = await fetch(API);
-                const data = await res.json() || [];
-                logs = data.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(d => ({ ...d, price: BigInt(d.price) })) }));
-                render();
-            } catch(e) { console.error("Sync Error"); }
+            const res = await fetch(API);
+            const data = await res.json() || [];
+            spendings = data.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(d => ({ ...d, price: BigInt(d.price) })) }));
+            render();
         }
 
         function render() {
-            renderHistory();
-            updateChart();
-            const total = logs.reduce((a, b) => a + b.cost, 0n);
-            document.getElementById('total-val').innerText = (Number(total)/1000).toLocaleString() + "k";
-        }
-
-        async function saveOne() {
-            const n = document.getElementById('in-name').value.toUpperCase(), p = document.getElementById('in-price').value, d = document.getElementById('in-date').value;
-            if(!n || !p) return;
-            let s = logs.find(x => x.date === d);
-            if(!s) { s = { date: d, cost: 0n, details: [] }; logs.push(s); }
-            s.details.push({ name: n, price: BigInt(p)*1000n });
-            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-            await sync();
-            document.getElementById('in-name').value = ""; document.getElementById('in-price').value = "";
-        }
-
-        async function bulkImport() {
-            const raw = document.getElementById('bulk-input').value;
-            const lines = raw.split('\n');
-            const dateMatch = lines[0].match(/(\d{1,2})\/(\d{1,2})/);
-            if(!dateMatch) return alert("Sai định dạng ngày tháng ở dòng đầu!");
-
-            const start = new Date(new Date().getFullYear(), parseInt(dateMatch[2])-1, parseInt(dateMatch[1]));
-            const dayMap = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
-            let count = 0;
-
-            lines.forEach(line => {
-                const parts = line.split(':');
-                if(parts.length < 2) return;
-                const dayKey = parts[0].trim().toUpperCase();
-                if(dayMap[dayKey] === undefined) return;
-
-                const d = new Date(start); d.setDate(start.getDate() + dayMap[dayKey]);
-                const dStr = d.toISOString().split('T')[0];
-
-                const items = parts[1].match(/(\d+)[kK]?\s*\(([^)]+)\)/g);
-                if(items) {
-                    let s = logs.find(x => x.date === dStr);
-                    if(!s) { s = { date: dStr, cost: 0n, details: [] }; logs.push(s); }
-                    items.forEach(it => {
-                        const m = it.match(/(\d+)[kK]?\s*\(([^)]+)\)/);
-                        s.details.push({ name: m[2].toUpperCase().trim(), price: BigInt(m[1])*1000n });
-                        count++;
-                    });
-                    s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-                }
-            });
-            if(count > 0) { await sync(); alert(`Đã nhập ${count} mục!`); document.getElementById('bulk-input').value = ""; }
-        }
-
-        async function sync() {
-            const out = logs.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
-            await fetch(API, {method: "POST", body: JSON.stringify(out)});
-            load();
-        }
-
-        function renderHistory() {
-            const hist = document.getElementById('lost-history');
-            const sorted = [...logs].sort((a,b) => b.date.localeCompare(a.date));
-            hist.innerHTML = sorted.map(s => `
-                <div class="receipt">
-                    <div style="text-align:center;border-bottom:1px solid #eee;padding-bottom:5px;font-weight:900;">${s.date}</div>
-                    ${s.details.map((d, i) => `<div style="display:flex;justify-content:space-between;margin:5px 0;"><span>${d.name}</span><b>${Number(d.price)/1000}k <span style="color:red;margin-left:10px;cursor:pointer;" onclick="del('${s.date}',${i})">×</span></b></div>`).join('')}
-                    <div style="text-align:right;font-weight:900;border-top:1px solid #eee;margin-top:5px;">SUM: ${Number(s.cost)/1000}k</div>
-                </div>
-            `).join('');
-        }
-
-        function updateChart() {
-            const ctx = document.getElementById('mainChart').getContext('2d');
-            if(chart) chart.destroy();
-            const last7 = [...logs].sort((a,b) => a.date.localeCompare(b.date)).slice(-7);
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: last7.map(x=>x.date.split('-')[2]), datasets: [{ data: last7.map(x=>Number(x.cost)/1000), borderColor: '#f2cc60', backgroundColor: 'rgba(242,204,96,0.1)', fill: true, tension: 0.4 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-            });
+            let grandTotal = 0n;
+            const sorted = [...spendings].sort((a,b) => b.date.localeCompare(a.date));
+            document.getElementById('daily-list').innerHTML = sorted.map(s => {
+                grandTotal += s.cost;
+                return `<div class="receipt">
+                    <div class="r-head">${s.date}</div>
+                    ${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}
+                    <div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div>
+                </div>`;
+            }).join('');
+            document.getElementById('grand-total-val').innerText = formatK(grandTotal);
+            updateChart('14d');
         }
 
         function drawWheel() {
-            const canvas = document.getElementById('wheel-canvas');
-            const ctx = canvas.getContext('2d');
-            const arc = (Math.PI * 2) / 8;
-            ctx.clearRect(0, 0, 800, 800);
+            const ctx = document.getElementById('wheel-canvas').getContext('2d');
+            const arc = Math.PI * 2 / 8;
             for(let i=0; i<8; i++) {
-                const angle = i * arc;
                 ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117";
-                ctx.moveTo(400, 400); ctx.arc(400, 400, 380, angle, angle + arc); ctx.fill();
-                ctx.save(); ctx.translate(400, 400); ctx.rotate(angle + arc/2);
-                ctx.textAlign = "center"; ctx.textBaseline = "middle";
-                ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
-                ctx.font = "bold 44px sans-serif";
+                ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
+                ctx.save(); ctx.translate(400, 400); ctx.rotate(i*arc + arc/2);
+                ctx.textAlign = "center"; ctx.fillStyle = i%2 ? "#fff" : "#f2cc60";
+                ctx.font = "bold 42px sans-serif";
                 const w = PATHS[i].split(' ');
-                if(w.length > 1) { ctx.fillText(w[0], 250, -25); ctx.font = "34px sans-serif"; ctx.fillText(w[1], 250, 35); }
-                else ctx.fillText(PATHS[i], 250, 0);
+                if(w.length > 1) { ctx.fillText(w[0], 250, -20); ctx.fillText(w[1], 250, 35); }
+                else ctx.fillText(PATHS[i], 250, 5);
                 ctx.restore();
             }
         }
 
         function spin() {
-            const extraSpin = Math.floor(Math.random() * 360) + 3600;
-            wheelAngle += extraSpin;
+            wheelAngle += Math.floor(Math.random() * 360) + 3600;
             document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`;
             document.getElementById('zen-res').innerText = "ĐANG QUÁN CHIẾU...";
             setTimeout(() => {
-                const deg = wheelAngle % 360;
-                const index = Math.floor(((270 - deg + 360) % 360) / 45);
-                document.getElementById('zen-res').innerText = PATHS[index].toUpperCase();
+                const idx = Math.floor(((270 - (wheelAngle % 360) + 360) % 360) / 45);
+                document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase();
             }, 5000);
         }
 
-        function nav(v) {
-            document.querySelectorAll('.view').forEach(x => x.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(x => x.classList.remove('active'));
-            document.getElementById('view-'+v).classList.add('active');
-            event.currentTarget.classList.add('active');
+        async function saveEntry() {
+            const d = document.getElementById('date-input').value; if(!d) return;
+            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
+            let s = spendings.find(x => x.date === d); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
+            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
+            s.cost = s.details.reduce((a, b) => a + b.price, 0n);
+            await sync(); render();
         }
 
-        async function del(d, i) {
-            const e = logs.find(x=>x.date===d); e.details.splice(i,1); e.cost=e.details.reduce((a,b)=>a+b.price,0n);
-            if(!e.details.length) logs=logs.filter(x=>x.date!==d);
-            await sync();
+        async function importData() {
+            const raw = document.getElementById('bulk-input').value;
+            const lines = raw.split('\n');
+            let anchor = null, count = 0;
+            const vn = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
+
+            lines.forEach(line => {
+                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
+                if(weekMatch) {
+                    let base = new Date(2026, parseInt(weekMatch[2])-1, parseInt(weekMatch[1]));
+                    base.setDate(base.getDate() - 1); // The Neutralizer Logic
+                    anchor = base.toISOString().split('T')[0];
+                    return;
+                }
+                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
+                if(dayMatch && anchor) {
+                    const dObj = new Date(anchor + "T00:00:00");
+                    dObj.setDate(dObj.getDate() + vn[dayMatch[1].toUpperCase()]);
+                    const iso = dObj.toISOString().split('T')[0];
+                    const parts = dayMatch[2].split('+');
+                    let s = spendings.find(x => x.date === iso);
+                    if(!s) { s = {date:iso, cost:0n, details:[]}; spendings.push(s); }
+                    parts.forEach(p => {
+                        const pm = p.match(/(\d+k|\d+)/i), nm = p.match(/\((.+?)\)/);
+                        if(pm) {
+                            s.details.push({name: (nm?nm[1]:"EXPENSE").toUpperCase(), price: toBigInt(pm[1])});
+                            count++;
+                        }
+                    });
+                    s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+                }
+            });
+            if(count>0) { await sync(); render(); alert(`Synced ${count} items!`); }
         }
 
-        async function resetData() { if(confirm("Xóa sạch toàn bộ dữ liệu?")) { await fetch(API, {method: "POST", body: JSON.stringify([])}); load(); } }
+        function updateChart(range) {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            const slice = [...spendings].sort((a,b) => a.date.localeCompare(b.date)).slice(-14);
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: slice.map(s => s.date.slice(5)), datasets: [{ data: slice.map(s => Number(s.cost)/1000), borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]},
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function applyAtmosphere(t) {
+            const r = document.documentElement.style;
+            document.getElementById('scanlines').style.setProperty('--fx', t==='retro'?'block':'none');
+            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); r.setProperty('--accent','#ff00ff'); }
+            else if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); r.setProperty('--accent','#00f3ff'); }
+            else { r.setProperty('--bg-img','none'); r.setProperty('--accent','#58a6ff'); }
+        }
+
+        let cV = "";
+        function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
+        function calcInput(v) { cV += v; uC(); }
+        function calcCmd(c) { cV += " " + c + " "; uC(); }
+        function calcClear() { cV = ""; uC(); }
+        function uC() { document.getElementById('calc-display').innerText = cV || "0"; }
+        function calcSolve() { try { cV = eval(cV).toString(); uC(); } catch(e) { cV = "Error"; } }
+        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); event.currentTarget.classList.add('active'); }
+        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }
+        async function clearAllData(){ if(confirm("Wipe all?")){ spendings=[]; await sync(); render(); }}
     </script>
 </body>
 </html>
