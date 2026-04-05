@@ -79,6 +79,10 @@
         .calc-btn:active { background: #333; }
 
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; z-index: 999; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        
+        /* Zen List Styling */
+        #zen-list::-webkit-scrollbar { width: 4px; }
+        #zen-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
     </style>
 </head>
 <body>
@@ -148,7 +152,7 @@
                 <option>Phẩm Tỳ Kheo</option><option>Phẩm Bà La Môn</option>
             </select>
 
-            <textarea id="sutra-content-input" rows="4" placeholder="Nhập câu kệ vào đây..."></textarea>
+            <textarea id="sutra-content-input" rows="4" placeholder="Dán nội dung câu kệ..."></textarea>
             
             <input type="text" id="sutra-id-input" value="Kệ số " placeholder="Ví dụ: Kệ số 1">
 
@@ -162,6 +166,12 @@
             <canvas id="wheel-canvas" width="800" height="800"></canvas>
         </div>
         <button class="btn" style="background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 20px;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
+
+        <div id="zen-library-container" style="margin-top: 40px; background: var(--glass-card); padding: 15px; border-radius: 12px; border: var(--border); backdrop-filter: blur(var(--blur));">
+            <div style="font-size: 11px; color: var(--gold); font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 1px;">THƯ VIỆN PHÁP CÚ CLOUD</div>
+            <div id="zen-list" style="max-height: 400px; overflow-y: auto; font-size: 13px;">
+                </div>
+        </div>
     </div>
 
     <div id="view-tools" class="view">
@@ -227,33 +237,53 @@
                 return `<div class="receipt"><div class="r-head">${s.date}</div>${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
+            
+            // Render Zen Library
+            const sutras = spendings.filter(x => x.isSutra).sort((a, b) => {
+                const valA = parseInt(a.r.match(/\d+/) || 0);
+                const valB = parseInt(b.r.match(/\d+/) || 0);
+                return valA - valB;
+            });
+            const zenList = document.getElementById('zen-list');
+            if(sutras.length === 0) {
+                zenList.innerHTML = `<div style="text-align:center; color:#8b949e; padding:20px;">Trống không. Hãy bắt đầu chép kinh.</div>`;
+            } else {
+                zenList.innerHTML = sutras.map(s => `
+                    <div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1;">
+                            <b style="color:var(--gold);">Kệ ${s.r}:</b> <span style="font-size:10px; opacity:0.6;">[${s.c}]</span>
+                            <div style="color:var(--text); font-style:italic; margin-top:4px; line-height:1.4;">${s.v.substring(0,60)}${s.v.length>60?'...':''}</div>
+                        </div>
+                        <div class="del-btn" onclick="deleteSutra('${s.r}')" style="padding:10px;">×</div>
+                    </div>
+                `).join('');
+            }
             updateChart('14d');
         }
 
-        // --- ZEN LOGIC (FIXED & IMPROVED) ---
         async function saveSutra() {
             const chapter = document.getElementById('sutra-chapter-select').value;
             const content = document.getElementById('sutra-content-input').value.trim();
             const rawId = document.getElementById('sutra-id-input').value;
             const idMatch = rawId.match(/\d+/);
-
             if(!content || !idMatch) return alert("Vui lòng nhập đủ nội dung và số kệ!");
-
             const idStr = rawId.replace("Kệ số ", "").trim();
-            
-            // Xoá câu cũ nếu trùng số kệ (Để ghi đè/sửa)
             spendings = spendings.filter(s => !(s.isSutra && String(s.r) === idStr));
-            
             spendings.push({ isSutra: true, c: chapter, v: content, r: idStr });
             await sync();
-            
             document.getElementById('sutra-content-input').value = "";
-            alert(`Đã lưu/cập nhật Kệ số ${idStr} lên Cloud!`);
-            refreshQuote();
+            render(); refreshQuote(); alert(`Đã lưu Kệ số ${idStr}`);
+        }
+
+        async function deleteSutra(id) {
+            if(confirm(`Xoá Kệ số ${id}?`)) {
+                spendings = spendings.filter(s => !(s.isSutra && s.r === id));
+                await sync(); render(); refreshQuote();
+            }
         }
 
         async function clearZenData() {
-            if(confirm("Xoá toàn bộ dữ liệu Pháp Cú trên Cloud?")) {
+            if(confirm("Xoá TOÀN BỘ Pháp Cú trên Cloud?")) {
                 spendings = spendings.filter(s => !s.isSutra);
                 await sync(); render(); refreshQuote();
             }
@@ -270,11 +300,9 @@
 
         function copySutra() {
             const text = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})\nNguồn: kinhphapcu.vn`;
-            navigator.clipboard.writeText(text);
-            alert("Đã sao chép!");
+            navigator.clipboard.writeText(text); alert("Đã sao chép!");
         }
 
-        // --- OTHER LOGIC (IMPORT, CHARTS, THEME) ---
         async function importData() {
             const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
             const lines = raw.split('\n'); let anchor = null, count = 0;
