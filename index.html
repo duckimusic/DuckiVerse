@@ -205,32 +205,30 @@
         const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
         let spendings = [], myChart = null, wheelAngle = 0;
 
-        // --- SOUND ENGINE (CHỈ THÊM ĐOẠN NÀY) ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSfx(type) {
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
+        // ==========================================
+        // 1. SOUND ENGINE (FIXED WITH YOUR WAV FILES)
+        // ==========================================
+        const SOUND_PATH = "https://raw.githubusercontent.com/user/repo/main/sounds/"; // ÔNG THAY LINK GITHUB CỦA ÔNG VÀO ĐÂY
 
-            if(type === 'click') {
-                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(); osc.stop(now + 0.1);
-            } else if(type === 'success') {
-                osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc.start(); osc.stop(now + 0.2);
-            } else if(type === 'delete') {
-                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
-                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-                osc.start(); osc.stop(now + 0.3);
-            } else if(type === 'wheel') {
-                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now);
-                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                osc.start(); osc.stop(now + 0.05);
+        const USER_SOUNDS = {
+            open: SOUND_PATH + "openapp.wav",
+            click: SOUND_PATH + "picktab.wav",
+            wheel: SOUND_PATH + "spinpwheel.wav",
+            success: SOUND_PATH + "calculated.wav",
+            delete: "" // Thêm file delete nếu muốn
+        };
+
+        function playSfx(type) {
+            if (USER_SOUNDS[type] && USER_SOUNDS[type] !== SOUND_PATH) {
+                const audio = new Audio(USER_SOUNDS[type]);
+                // Giảm 50% âm thanh cho picktab (click)
+                audio.volume = (type === 'click') ? 0.5 : 0.8;
+                audio.play().catch(e => console.log("Sound error: ", e));
             }
         }
+
+        // Tự động phát tiếng openapp khi tương tác đầu tiên
+        window.addEventListener('click', () => { playSfx('open'); }, { once: true });
 
         window.onload = () => {
             setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
@@ -306,8 +304,8 @@
             await sync(); document.getElementById('sutra-content-input').value = ""; render(); refreshQuote();
         }
 
-        async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('delete'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
-        async function clearZenData() { if(confirm("Xoá sạch Pháp Cú?")) { playSfx('delete'); spendings = spendings.filter(s => !s.isSutra); await sync(); render(); refreshQuote(); } }
+        async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('click'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
+        async function clearZenData() { if(confirm("Xoá sạch Pháp Cú?")) { playSfx('click'); spendings = spendings.filter(s => !s.isSutra); await sync(); render(); refreshQuote(); } }
         function refreshQuote() {
             const sutras = spendings.filter(s => s.isSutra);
             const q = sutras.length > 0 ? sutras[Math.floor(Math.random()*sutras.length)] : {c:"Hệ thống", v:"Chưa có dữ liệu.", r:0};
@@ -380,13 +378,60 @@
                 document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); 
             }, 5000); 
         }
+
         function showView(v){ playSfx('click'); document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
-        function toggleCalc() { playSfx('click'); document.getElementById('calc-panel').classList.toggle('open'); }
-        function calcInput(v) { playSfx('click'); document.getElementById('calc-display').innerText += v; }
-        function calcClear() { playSfx('delete'); document.getElementById('calc-display').innerText = ""; }
-        function calcSolve() { playSfx('success'); try { document.getElementById('calc-display').innerText = eval(document.getElementById('calc-display').innerText); } catch(e) {} }
-        async function clearAllData(){ if(confirm("Xoá sạch?")){ playSfx('delete'); spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
-        async function deleteLine(d, i) { playSfx('delete'); const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
+        
+        // ==========================================
+        // 3. CALCULATOR LOGIC (FIXED)
+        // ==========================================
+        let calcCurrent = ""; 
+
+        function toggleCalc() { 
+            playSfx('click'); 
+            document.getElementById('calc-panel').classList.toggle('open'); 
+        }
+
+        function calcInput(v) { 
+            playSfx('click'); 
+            if (calcCurrent === "0") calcCurrent = v;
+            else calcCurrent += v;
+            document.getElementById('calc-display').innerText = calcCurrent || "0"; 
+        }
+
+        function calcCmd(op) { 
+            playSfx('click');
+            if (calcCurrent === "" && op !== "-") return;
+            const lastChar = calcCurrent.slice(-1);
+            if (["+", "-", "*", "/"].includes(lastChar)) {
+                calcCurrent = calcCurrent.slice(0, -1) + op;
+            } else {
+                calcCurrent += op; 
+            }
+            document.getElementById('calc-display').innerText = calcCurrent || "0";
+        }
+
+        function calcClear() { 
+            playSfx('click'); 
+            calcCurrent = ""; 
+            document.getElementById('calc-display').innerText = "0"; 
+        }
+
+        function calcSolve() { 
+            try { 
+                if (!calcCurrent) return;
+                playSfx('success');
+                let result = eval(calcCurrent); 
+                if (!Number.isInteger(result)) result = parseFloat(result.toFixed(3));
+                document.getElementById('calc-display').innerText = result; 
+                calcCurrent = result.toString(); 
+            } catch(e) { 
+                document.getElementById('calc-display').innerText = "ERR"; 
+                calcCurrent = ""; 
+            } 
+        }
+
+        async function clearAllData(){ if(confirm("Xoá sạch?")){ playSfx('click'); spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
+        async function deleteLine(d, i) { playSfx('click'); const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
         function applyAtmosphere(t) { playSfx('success'); const r = document.documentElement.style; if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); } else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); } updateChart(); }
     </script>
 </body>
