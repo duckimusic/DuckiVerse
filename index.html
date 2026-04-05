@@ -175,7 +175,7 @@
                 <option>Phẩm Tỳ Kheo</option><option>Phẩm Bà La Môn</option>
             </select>
             <textarea id="sutra-content-input" rows="4" placeholder="Dán nội dung câu kệ..."></textarea>
-            <input type="text" id="sutra-id-input" value="Kệ số " placeholder="Ví dụ: Kệ số 1">
+            <input type="text" id="sutra-id-input" value="Kệ số " placeholder="Ví dụ: Kệ số 85-86">
             <button class="btn" style="background: var(--gold); color: #000; margin-top: 10px;" onclick="saveSutra()">LƯU VÀO CLOUD</button>
             <button class="btn" style="background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 10px; font-size: 10px; padding: 5px;" onclick="clearZenData()">XOÁ HẾT PHÁP CÚ</button>
         </div>
@@ -336,7 +336,14 @@
                 return `<div class="receipt"><div class="r-head">${s.date}</div>${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
-            const sutras = spendings.filter(x => x.isSutra).sort((a, b) => parseInt(a.r.match(/\d+/) || 0) - parseInt(b.r.match(/\d+/) || 0));
+            
+            // FIX LỖI SORT: Sắp xếp theo số đầu tiên tìm thấy trong ID
+            const sutras = spendings.filter(x => x.isSutra).sort((a, b) => {
+                const valA = parseInt(String(a.r).match(/\d+/) || 0);
+                const valB = parseInt(String(b.r).match(/\d+/) || 0);
+                return valA - valB;
+            });
+            
             document.getElementById('zen-list').innerHTML = sutras.length === 0 ? `<div style="text-align:center; color:#8b949e; padding:20px;">Trống.</div>` : sutras.map(s => `<div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"><div style="flex:1;"><b style="color:var(--gold);">Kệ ${s.r}:</b> <span style="font-size:10px; opacity:0.6;">[${s.c}]</span><div style="color:var(--text); font-style:italic; margin-top:4px;">${s.v.substring(0,60)}...</div></div><div class="del-btn" onclick="deleteSutra('${s.r}')">×</div></div>`).join('');
             updateChart('14d');
         }
@@ -345,13 +352,21 @@
             playSfx('success');
             const chapter = document.getElementById('sutra-chapter-select').value;
             const content = document.getElementById('sutra-content-input').value.trim();
-            const rawId = document.getElementById('sutra-id-input').value;
-            const idMatch = rawId.match(/\d+/);
-            if(!content || !idMatch) return;
-            const idStr = idMatch[0];
-            spendings = spendings.filter(s => !(s.isSutra && String(s.r) === idStr));
-            spendings.push({ isSutra: true, c: chapter, v: content, r: idStr });
-            await sync(); document.getElementById('sutra-content-input').value = ""; render(); refreshQuote();
+            const rawId = document.getElementById('sutra-id-input').value.trim();
+            
+            // FIX LỖI NHẬN DIỆN ID: Lấy nguyên văn những gì người dùng nhập sau chữ "Kệ số"
+            const cleanId = rawId.replace(/Kệ số\s*/i, ""); 
+
+            if(!content || !cleanId) return;
+
+            // Ghi đè nếu trùng ID nguyên văn (VD: "85-86" ghi đè "85-86")
+            spendings = spendings.filter(s => !(s.isSutra && String(s.r) === String(cleanId)));
+            
+            spendings.push({ isSutra: true, c: chapter, v: content, r: cleanId });
+            await sync(); 
+            document.getElementById('sutra-content-input').value = ""; 
+            render(); 
+            refreshQuote();
         }
 
         async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('click'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
