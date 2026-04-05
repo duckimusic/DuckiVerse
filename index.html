@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 13.0 - Zen Edition</title>
+    <title>SpendLog 13.1 - Uncanny Glass Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -12,6 +12,7 @@
             --text: #e6edf3; --font: -apple-system, sans-serif;
             --border: 1px solid rgba(255,255,255,0.1); --fx: none;
             --receipt-bg: #fff; --receipt-text: #111; --bg-img: none;
+            --blur: 15px; --glass-card: rgba(13, 17, 23, 0.8);
         }
 
         /* SPLASH SCREEN */
@@ -35,7 +36,7 @@
 
         body { 
             background: var(--bg); background-image: var(--bg-img); background-size: cover; background-position: center; background-attachment: fixed;
-            color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; transition: 0.8s ease; overflow-x: hidden; 
+            color: var(--text); font-family: var(--font); margin: 0; padding-bottom: 100px; transition: 0.8s ease; overflow-x: hidden; filter: var(--filter, none);
         }
 
         #scanlines { 
@@ -44,25 +45,26 @@
             background-size: 100% 3px, 3px 100%;
         }
 
-        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--card); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(15px); }
+        .nav-tabs { display: flex; position: sticky; top: 0; background: var(--glass-card); border-bottom: var(--border); z-index: 1000; backdrop-filter: blur(var(--blur)); }
         .nav-tab { flex: 1; padding: 15px 5px; text-align: center; font-size: 10px; font-weight: 800; cursor: pointer; color: #8b949e; text-transform: uppercase; }
         .nav-tab.active { color: var(--accent); border-bottom: 2px solid var(--accent); }
         
-        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--filter, none); }
+        .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--view-filter, none); }
         .view.active { display: block; }
 
         .receipt { 
             background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; margin-bottom: 15px; 
-            font-family: monospace; border: var(--border); transition: 0.4s;
+            font-family: monospace; border: var(--border); transition: 0.4s; transform: var(--receipt-tilt, none);
         }
         .r-head { border-bottom: 1px dashed rgba(0,0,0,0.2); text-align: center; padding-bottom: 8px; margin-bottom: 8px; font-weight: bold; }
         .r-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; }
         .r-total { border-top: 1px solid currentColor; margin-top: 8px; padding-top: 6px; display: flex; justify-content: space-between; font-weight: bold; }
         .del-btn { color: var(--danger); font-weight: bold; cursor: pointer; padding-left: 12px; }
 
-        .input-group { background: var(--card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 15px; backdrop-filter: blur(12px); }
+        .input-group { background: var(--glass-card); padding: 20px; border-radius: 12px; border: var(--border); margin-bottom: 15px; backdrop-filter: blur(var(--blur)); }
         input, textarea, select { width: 100%; padding: 12px; margin: 6px 0; background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1); color: var(--accent); border-radius: 8px; box-sizing: border-box; }
-        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; }
+        .btn { width: 100%; padding: 15px; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
 
         /* WHEEL STYLE */
         .wheel-container { position: relative; width: 300px; height: 300px; margin: 25px auto; }
@@ -71,21 +73,22 @@
         .wheel-hub { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 30px; height: 30px; background: var(--gold); border-radius: 50%; border: 3px solid var(--bg); z-index: 5; }
 
         /* CALC */
-        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; }
+        #calc-toggle { position: fixed; right: 20px; bottom: 85px; background: var(--gold); color: #000; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; cursor: pointer; z-index: 2000; transition: 0.3s; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         #calc-panel { position: fixed; right: -320px; top: 0; width: 310px; height: 100%; background: rgba(0,0,0,0.95); backdrop-filter: blur(30px); border-left: var(--border); z-index: 2001; transition: 0.5s; padding: 25px; box-sizing: border-box; }
         #calc-panel.open { right: 0; }
-        .calc-screen { width: 100%; height: 85px; background: #000; color: var(--green); text-align: right; font-size: 34px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; }
+        .calc-screen { width: 100%; height: 85px; background: #000; color: var(--green); text-align: right; font-size: 34px; padding: 20px; box-sizing: border-box; border-radius: 4px; margin-bottom: 15px; border: var(--border); font-family: monospace; overflow-x: auto; }
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
-        .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid #333; }
+        .calc-btn { background: #1a1a1a; color: #fff; padding: 18px; border-radius: 10px; text-align: center; cursor: pointer; border: 1px solid #333; transition: 0.2s; -webkit-user-select: none; user-select: none; }
+        .calc-btn:active { background: #333; }
 
-        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; }
+        .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; z-index: 999; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
 
     <div id="splash-screen">
         <div class="splash-logo">☸</div>
-        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.0 ZEN</div>
+        <div style="margin-top: 15px; font-size: 12px; color: #8b949e; letter-spacing: 2px;">HIS 13.1 ZEN</div>
         <div class="splash-bar"><div class="splash-progress"></div></div>
     </div>
 
@@ -115,10 +118,10 @@
                 <option value="3">April</option><option value="4">May</option>
             </select>
         </div>
-        <div style="background: var(--card); border-radius: 12px; padding: 15px; height: 260px; border: var(--border);">
+        <div style="background: var(--glass-card); border-radius: 12px; padding: 15px; height: 260px; border: var(--border); backdrop-filter: blur(var(--blur));">
             <canvas id="spendingChart"></canvas>
         </div>
-        <div id="stats-summary" style="margin-top:15px; background: var(--card); padding: 15px; border-radius: 12px; border: var(--border);"></div>
+        <div id="stats-summary" style="margin-top:15px; background: var(--glass-card); padding: 15px; border-radius: 12px; border: var(--border); backdrop-filter: blur(var(--blur));"></div>
     </div>
 
     <div id="view-zen" class="view">
@@ -133,12 +136,13 @@
 
     <div id="view-tools" class="view">
         <div class="input-group">
-            <label style="font-size: 11px; color: #8b949e; font-weight: bold;">THEME</label>
+            <label style="font-size: 11px; color: #8b949e; font-weight: bold;">THEME ATMOSPHERE</label>
             <select onchange="applyAtmosphere(this.value)">
-                <option value="default">Matrix</option>
+                <option value="default">Matrix (Default)</option>
+                <option value="glass">Glassmorphism</option>
                 <option value="retro">80s Retro</option>
                 <option value="cyber">Cyberpunk</option>
-                <option value="horror">Uncanny</option>
+                <option value="horror">Uncanny horror</option>
             </select>
         </div>
         <textarea id="bulk-input" rows="8" placeholder="Paste (01/04) report here..."></textarea>
@@ -176,15 +180,19 @@
         function toBigInt(val) { return BigInt(String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '') || 0); }
 
         async function sync() {
-            const data = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
-            await fetch(API, {method:"POST", body:JSON.stringify(data)});
+            try {
+                const data = spendings.map(s => ({ ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) }));
+                await fetch(API, {method:"POST", body:JSON.stringify(data)});
+            } catch(e) { alert("Sync failed!"); }
         }
 
         async function load() {
-            const res = await fetch(API);
-            const data = await res.json() || [];
-            spendings = data.map(s => ({ ...s, cost: BigInt(s.cost), details: s.details.map(d => ({ ...d, price: BigInt(d.price) })) }));
-            render();
+            try {
+                const res = await fetch(API);
+                const data = await res.json() || [];
+                spendings = data.map(s => ({ ...s, cost: BigInt(s.cost || 0), details: s.details.map(d => ({ ...d, price: BigInt(d.price || 0) })) }));
+                render();
+            } catch(e) { console.error("Load failed"); }
         }
 
         function render() {
@@ -203,8 +211,10 @@
         }
 
         function drawWheel() {
-            const ctx = document.getElementById('wheel-canvas').getContext('2d');
+            const canvas = document.getElementById('wheel-canvas');
+            const ctx = canvas.getContext('2d');
             const arc = Math.PI * 2 / 8;
+            ctx.clearRect(0, 0, 800, 800);
             for(let i=0; i<8; i++) {
                 ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117";
                 ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
@@ -231,14 +241,16 @@
         async function saveEntry() {
             const d = document.getElementById('date-input').value; if(!d) return;
             const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
+            if(names.length !== costs.length) return alert("Items and Prices must match!");
             let s = spendings.find(x => x.date === d); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
-            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
+            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim() || "EXPENSE", price:toBigInt(costs[i])}));
             s.cost = s.details.reduce((a, b) => a + b.price, 0n);
             await sync(); render();
+            document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
         }
 
         async function importData() {
-            const raw = document.getElementById('bulk-input').value;
+            const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
             const lines = raw.split('\n');
             let anchor = null, count = 0;
             const vn = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
@@ -247,48 +259,86 @@
                 const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
                 if(weekMatch) {
                     let base = new Date(2026, parseInt(weekMatch[2])-1, parseInt(weekMatch[1]));
-                    base.setDate(base.getDate() - 1); // The Neutralizer Logic
-                    anchor = base.toISOString().split('T')[0];
-                    return;
+                    base.setDate(base.getDate() - 1); // Neutralizer
+                    anchor = base.toISOString().split('T')[0]; return;
                 }
                 const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
                 if(dayMatch && anchor) {
-                    const dObj = new Date(anchor + "T00:00:00");
-                    dObj.setDate(dObj.getDate() + vn[dayMatch[1].toUpperCase()]);
+                    const dObj = new Date(anchor + "T00:00:00"); dObj.setDate(dObj.getDate() + vn[dayMatch[1].toUpperCase()]);
                     const iso = dObj.toISOString().split('T')[0];
                     const parts = dayMatch[2].split('+');
                     let s = spendings.find(x => x.date === iso);
                     if(!s) { s = {date:iso, cost:0n, details:[]}; spendings.push(s); }
                     parts.forEach(p => {
-                        const pm = p.match(/(\d+k|\d+)/i), nm = p.match(/\((.+?)\)/);
-                        if(pm) {
-                            s.details.push({name: (nm?nm[1]:"EXPENSE").toUpperCase(), price: toBigInt(pm[1])});
-                            count++;
-                        }
+                        const pm = p.match(/(\d+)[kK]?/), nm = p.match(/\((.+?)\)/);
+                        if(pm) { s.details.push({name: (nm?nm[1]:"EXPENSE").toUpperCase().trim(), price: toBigInt(pm[0])}); count++; }
                     });
                     s.cost = s.details.reduce((a,b) => a+b.price, 0n);
                 }
             });
-            if(count>0) { await sync(); render(); alert(`Synced ${count} items!`); }
+            if(count>0) { await sync(); render(); alert(`Synced ${count} items!`); document.getElementById('bulk-input').value = ""; }
         }
 
         function updateChart(range) {
             const ctx = document.getElementById('spendingChart').getContext('2d');
-            const slice = [...spendings].sort((a,b) => a.date.localeCompare(b.date)).slice(-14);
+            const allSorted = [...spendings].sort((a,b) => a.date.localeCompare(b.date));
+            let dataArr = allSorted.slice(-14);
+            
             if(myChart) myChart.destroy();
             myChart = new Chart(ctx, {
                 type: 'line',
-                data: { labels: slice.map(s => s.date.slice(5)), datasets: [{ data: slice.map(s => Number(s.cost)/1000), borderColor: '#58a6ff', tension: 0.3, fill: true, backgroundColor: 'rgba(88, 166, 255, 0.1)' }]},
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+                data: { 
+                    labels: dataArr.map(s => s.date.slice(5).replace('-','/')), 
+                    datasets: [{ 
+                        data: dataArr.map(s => Number(s.cost)/1000), 
+                        borderColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+                        tension: 0.3, fill: true, 
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        pointBackgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--accent').trim(),
+                        pointRadius: 2
+                    }]
+                },
+                options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
             });
+            const sum = dataArr.reduce((a, b) => a + Number(b.cost), 0);
+            document.getElementById('stats-summary').innerHTML = `Last 14 days total: <b style="color:var(--accent)">${new Intl.NumberFormat().format(Math.floor(sum/1000))}k</b>`;
         }
 
         function applyAtmosphere(t) {
             const r = document.documentElement.style;
             document.getElementById('scanlines').style.setProperty('--fx', t==='retro'?'block':'none');
-            if(t==='retro'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')"); r.setProperty('--accent','#ff00ff'); }
-            else if(t==='cyber'){ r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')"); r.setProperty('--accent','#00f3ff'); }
-            else { r.setProperty('--bg-img','none'); r.setProperty('--accent','#58a6ff'); }
+            
+            // RESET
+            r.setProperty('--font','-apple-system, sans-serif'); r.setProperty('--bg-img','none'); r.setProperty('--bg','#0d1117');
+            r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); r.setProperty('--filter','none');
+            r.setProperty('--view-filter','none'); r.setProperty('--blur','15px'); r.setProperty('--glass-card','rgba(13, 17, 23, 0.8)');
+            r.setProperty('--receipt-bg','#fff'); r.setProperty('--receipt-text','#111'); r.setProperty('--receipt-tilt','none');
+
+            if(t==='glass'){
+                r.setProperty('--bg-img',"url('https://static.vecteezy.com/system/resources/previews/075/488/883/non_2x/glass-frame-with-a-glass-morphism-effect-on-a-modern-abstract-digital-background-vector.jpg')");
+                r.setProperty('--blur','20px'); r.setProperty('--glass-card','rgba(255, 255, 255, 0.1)');
+                r.setProperty('--border','1px solid rgba(255,255,255,0.2)'); r.setProperty('--accent','#fff');
+                r.setProperty('--text','#fff');
+            }
+            else if(t==='retro'){
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070')");
+                r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14');
+                r.setProperty('--font','monospace');
+            }
+            else if(t==='cyber'){
+                r.setProperty('--bg-img',"url('https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?q=80&w=2023')");
+                r.setProperty('--accent','#00f3ff'); r.setProperty('--card','rgba(0,0,0,0.85)');
+            }
+            else if(t==='horror'){
+                r.setProperty('--bg-img',"url('https://studybreaks.com/wp-content/uploads/2021/12/Image-from-iOS-1-2.jpg')");
+                r.setProperty('--filter','grayscale(0.5) contrast(1.2) sepia(0.2)');
+                r.setProperty('--font','serif'); r.setProperty('--accent','#800000');
+                r.setProperty('--receipt-tilt','rotateX(10deg) rotateY(-5deg)');
+                r.setProperty('--receipt-bg','#b0a090'); r.setProperty('--receipt-text','#000');
+            }
+            
+            // Redraw chart to apply new accent color
+            if (spendings.length > 0) updateChart('14d');
         }
 
         let cV = "";
@@ -297,10 +347,11 @@
         function calcCmd(c) { cV += " " + c + " "; uC(); }
         function calcClear() { cV = ""; uC(); }
         function uC() { document.getElementById('calc-display').innerText = cV || "0"; }
-        function calcSolve() { try { cV = eval(cV).toString(); uC(); } catch(e) { cV = "Error"; } }
+        function calcSolve() { try { cV = eval(cV.replace('÷','/').replace('×','*')).toString(); uC(); } catch(e) { cV = "Error"; uC(); } }
+        
         function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); event.currentTarget.classList.add('active'); }
         async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); if(!s.details.length) spendings=spendings.filter(x=>x.date!==d); await sync(); render(); }
-        async function clearAllData(){ if(confirm("Wipe all?")){ spendings=[]; await sync(); render(); }}
+        async function clearAllData(){ if(confirm("Wipe all data permanently?")){ spendings=[]; await sync(); render(); }}
     </script>
 </body>
 </html>
