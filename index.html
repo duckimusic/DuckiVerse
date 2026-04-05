@@ -206,29 +206,29 @@
         let spendings = [], myChart = null, wheelAngle = 0;
 
         // ==========================================
-        // 1. SOUND ENGINE (FIXED WITH YOUR WAV FILES)
+        // 1. DUCKI SOUND ENGINE (DIRECT WAV LINKS)
         // ==========================================
-        const SOUND_PATH = "https://raw.githubusercontent.com/user/repo/main/sounds/"; // ÔNG THAY LINK GITHUB CỦA ÔNG VÀO ĐÂY
-
         const USER_SOUNDS = {
-            open: SOUND_PATH + "openapp.wav",
-            click: SOUND_PATH + "picktab.wav",
-            wheel: SOUND_PATH + "spinpwheel.wav",
-            success: SOUND_PATH + "calculated.wav",
-            delete: "" // Thêm file delete nếu muốn
+            open: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/openapp.wav",
+            click: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/picktab.wav",
+            wheel: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/spinpwheel.wav",
+            success: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/calculated.wav"
         };
 
         function playSfx(type) {
-            if (USER_SOUNDS[type] && USER_SOUNDS[type] !== SOUND_PATH) {
+            if (USER_SOUNDS[type]) {
                 const audio = new Audio(USER_SOUNDS[type]);
-                // Giảm 50% âm thanh cho picktab (click)
+                // picktab (click) giảm âm lượng nhẹ để không bị chói
                 audio.volume = (type === 'click') ? 0.5 : 0.8;
+                audio.currentTime = 0; 
                 audio.play().catch(e => console.log("Sound error: ", e));
             }
         }
 
-        // Tự động phát tiếng openapp khi tương tác đầu tiên
-        window.addEventListener('click', () => { playSfx('open'); }, { once: true });
+        // Tự động phát tiếng mở app khi user click lần đầu (bypass Autoplay Policy)
+        window.addEventListener('click', () => { 
+            playSfx('open'); 
+        }, { once: true });
 
         window.onload = () => {
             setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
@@ -252,7 +252,7 @@
             try {
                 const data = spendings.map(s => s.isSutra ? s : { ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) });
                 await fetch(API, {method:"POST", body:JSON.stringify(data)});
-            } catch(e) { alert("Sync failed!"); }
+            } catch(e) { console.error("Sync failed!"); }
         }
 
         async function load() {
@@ -306,6 +306,7 @@
 
         async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('click'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
         async function clearZenData() { if(confirm("Xoá sạch Pháp Cú?")) { playSfx('click'); spendings = spendings.filter(s => !s.isSutra); await sync(); render(); refreshQuote(); } }
+        
         function refreshQuote() {
             const sutras = spendings.filter(s => s.isSutra);
             const q = sutras.length > 0 ? sutras[Math.floor(Math.random()*sutras.length)] : {c:"Hệ thống", v:"Chưa có dữ liệu.", r:0};
@@ -313,6 +314,7 @@
             document.getElementById('quote-text').innerText = `"${q.v}"`;
             document.getElementById('quote-ref').innerText = `— Kệ số ${q.r}`;
         }
+        
         function copySutra() { playSfx('click'); const t = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})`; navigator.clipboard.writeText(t); alert("Coppied!"); }
 
         function updateChart(mode) {
@@ -380,56 +382,10 @@
         }
 
         function showView(v){ playSfx('click'); document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
-        
-        // ==========================================
-        // 3. CALCULATOR LOGIC (FIXED)
-        // ==========================================
-        let calcCurrent = ""; 
-
-        function toggleCalc() { 
-            playSfx('click'); 
-            document.getElementById('calc-panel').classList.toggle('open'); 
-        }
-
-        function calcInput(v) { 
-            playSfx('click'); 
-            if (calcCurrent === "0") calcCurrent = v;
-            else calcCurrent += v;
-            document.getElementById('calc-display').innerText = calcCurrent || "0"; 
-        }
-
-        function calcCmd(op) { 
-            playSfx('click');
-            if (calcCurrent === "" && op !== "-") return;
-            const lastChar = calcCurrent.slice(-1);
-            if (["+", "-", "*", "/"].includes(lastChar)) {
-                calcCurrent = calcCurrent.slice(0, -1) + op;
-            } else {
-                calcCurrent += op; 
-            }
-            document.getElementById('calc-display').innerText = calcCurrent || "0";
-        }
-
-        function calcClear() { 
-            playSfx('click'); 
-            calcCurrent = ""; 
-            document.getElementById('calc-display').innerText = "0"; 
-        }
-
-        function calcSolve() { 
-            try { 
-                if (!calcCurrent) return;
-                playSfx('success');
-                let result = eval(calcCurrent); 
-                if (!Number.isInteger(result)) result = parseFloat(result.toFixed(3));
-                document.getElementById('calc-display').innerText = result; 
-                calcCurrent = result.toString(); 
-            } catch(e) { 
-                document.getElementById('calc-display').innerText = "ERR"; 
-                calcCurrent = ""; 
-            } 
-        }
-
+        function toggleCalc() { playSfx('click'); document.getElementById('calc-panel').classList.toggle('open'); }
+        function calcInput(v) { playSfx('click'); document.getElementById('calc-display').innerText += v; }
+        function calcClear() { playSfx('click'); document.getElementById('calc-display').innerText = ""; }
+        function calcSolve() { playSfx('success'); try { document.getElementById('calc-display').innerText = eval(document.getElementById('calc-display').innerText); } catch(e) {} }
         async function clearAllData(){ if(confirm("Xoá sạch?")){ playSfx('click'); spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
         async function deleteLine(d, i) { playSfx('click'); const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
         function applyAtmosphere(t) { playSfx('success'); const r = document.documentElement.style; if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); } else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); } updateChart(); }
