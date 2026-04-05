@@ -80,7 +80,6 @@
 
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; z-index: 999; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         
-        /* Zen List Styling */
         #zen-list::-webkit-scrollbar { width: 4px; }
         #zen-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
     </style>
@@ -116,8 +115,7 @@
         <div style="display: flex; gap: 6px; margin-bottom: 15px;">
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px;" onclick="updateChart('14d')">RECENT</button>
             <select id="month-picker" onchange="updateChart('month')" style="flex: 1; margin: 0;">
-                <option value="3">April</option><option value="4">May</option>
-            </select>
+                </select>
         </div>
         <div style="background: var(--glass-card); border-radius: 12px; padding: 15px; height: 260px; border: var(--border); backdrop-filter: blur(var(--blur));">
             <canvas id="spendingChart"></canvas>
@@ -207,6 +205,16 @@
         window.onload = () => {
             setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
             document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+            
+            // AUTO-POPULATE 12 MONTHS
+            const monthPicker = document.getElementById('month-picker');
+            const currentMonth = new Date().getMonth();
+            const monthNames = ["January", "February", "March", "April", "May", "June", 
+                                "July", "August", "September", "October", "November", "December"];
+            monthPicker.innerHTML = monthNames.map((name, i) => 
+                `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${name}</option>`
+            ).join('');
+
             drawWheel(); load();
         };
 
@@ -238,7 +246,6 @@
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
             
-            // Render Zen Library
             const sutras = spendings.filter(x => x.isSutra).sort((a, b) => {
                 const valA = parseInt(a.r.match(/\d+/) || 0);
                 const valB = parseInt(b.r.match(/\d+/) || 0);
