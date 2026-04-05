@@ -197,7 +197,6 @@
 
         async function sync() {
             try {
-                // Chỉ BigInt hóa những object là tiền (không có isSutra)
                 const data = spendings.map(s => {
                     if(s.isSutra) return s;
                     return { ...s, cost: s.cost.toString(), details: s.details.map(d => ({ ...d, price: d.price.toString() })) };
@@ -221,7 +220,6 @@
 
         function render() {
             let grandTotal = 0n;
-            // Chỉ render những cái KHÔNG PHẢI KINH
             const bills = spendings.filter(x => !x.isSutra).sort((a,b) => b.date.localeCompare(a.date));
             document.getElementById('daily-list').innerHTML = bills.map(s => {
                 grandTotal += s.cost;
@@ -235,42 +233,94 @@
             updateChart('14d');
         }
 
-        // --- LOGIC ZEN (CLOUD) ---
+        // --- IMPORT DATA CẢI TIẾN ---
+        async function importData() {
+            const raw = document.getElementById('bulk-input').value;
+            if (!raw.trim()) return;
+
+            const lines = raw.split('\n');
+            let anchorDate = null; 
+            let count = 0;
+            const vnMap = {"T2":0, "T3":1, "T4":2, "T5":3, "T6":4, "T7":5, "CN":6};
+
+            lines.forEach(line => {
+                // Quét ngày mốc trong ngoặc (dd/mm). VD: "(06/04 - 12/04)" -> lấy 06/04
+                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
+                if (weekMatch) {
+                    const d = parseInt(weekMatch[1]);
+                    const m = parseInt(weekMatch[2]) - 1;
+                    anchorDate = new Date(2026, m, d);
+                    return;
+                }
+
+                // Quét dòng dữ liệu: "T2: 50k (Ăn)"
+                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
+                if (dayMatch && anchorDate) {
+                    const dayKey = dayMatch[1].toUpperCase();
+                    const offset = vnMap[dayKey];
+                    
+                    const targetDate = new Date(anchorDate);
+                    targetDate.setDate(anchorDate.getDate() + offset);
+                    const iso = targetDate.toISOString().split('T')[0];
+
+                    const parts = dayMatch[2].split('+');
+                    let s = spendings.find(x => x.date === iso && !x.isSutra);
+                    if (!s) {
+                        s = {date: iso, cost: 0n, details: []};
+                        spendings.push(s);
+                    }
+
+                    parts.forEach(p => {
+                        const priceM = p.match(/(\d+)[kK]?/);
+                        const nameM = p.match(/\((.+?)\)/);
+                        if (priceM) {
+                            s.details.push({
+                                name: (nameM ? nameM[1] : "EXPENSE").toUpperCase().trim(),
+                                price: toBigInt(priceM[1])
+                            });
+                            count++;
+                        }
+                    });
+                    s.cost = s.details.reduce((a, b) => a + b.price, 0n);
+                }
+            });
+
+            if (count > 0) {
+                await sync(); 
+                render(); 
+                alert(`Đã đồng bộ ${count} món vào Cloud!`); 
+                document.getElementById('bulk-input').value = ""; 
+            } else {
+                alert("Sai định dạng rồi! Ghi đúng kiểu T2: 50k (Tên) nhé.");
+            }
+        }
+
+        // --- CÁC HÀM KHÁC GIỮ NGUYÊN ---
         function saveSutra() {
             const input = document.getElementById('bulk-sutra-input');
             const raw = input.value.trim();
             if(!raw) return;
-
             const lines = raw.split('\n').filter(l => l.trim() !== "");
             const lastLine = lines[lines.length - 1];
             const idMatch = lastLine.match(/Kệ số (\d+)/);
-
             if(idMatch) {
                 const id = parseInt(idMatch[1]);
                 const chapter = lines[0].includes("Phẩm") ? lines[0].trim() : "PHẨM CHƯA RÕ";
                 const content = lines.slice(lines[0].includes("Phẩm") ? 1 : 0, -1).join('\n');
-
                 if(!spendings.some(s => s.isSutra && s.r === id)) {
                     spendings.push({ isSutra: true, c: chapter, v: content, r: id });
-                    sync();
-                    input.value = "";
-                    alert("Đã đồng bộ bài kệ lên Cloud!");
-                    refreshQuote();
-                } else {
-                    alert("Kệ này đã tồn tại!");
-                }
-            } else { alert("Thiếu dòng 'Kệ số...' rồi!"); }
+                    sync(); input.value = ""; alert("Đã sync kệ!"); refreshQuote();
+                } else alert("Kệ này có rồi!");
+            } else alert("Thiếu 'Kệ số...'!");
         }
 
         function refreshQuote() {
             const sutras = spendings.filter(s => s.isSutra);
-            const pool = sutras.length > 0 ? sutras : [{c:"Hệ thống", v:"Chưa có dữ liệu Cloud.\nHãy tự thêm bài kệ đầu tiên.", r:0}];
+            const pool = sutras.length > 0 ? sutras : [{c:"Hệ thống", v:"Chưa có dữ liệu Cloud.", r:0}];
             const q = pool[Math.floor(Math.random() * pool.length)];
             document.getElementById('quote-chapter').innerText = q.c.toUpperCase();
             document.getElementById('quote-text').innerText = `"${q.v}"`;
             document.getElementById('quote-ref').innerText = `— Kệ số ${q.r}`;
-            const card = document.getElementById('dhammapada-container');
-            card.style.opacity = 0; setTimeout(() => card.style.opacity = 1, 50);
         }
 
         function copySutra() {
@@ -280,7 +330,6 @@
             setTimeout(() => btn.innerText = "SAO CHÉP", 2000);
         }
 
-        // --- WHEEL & CHARTS ---
         function drawWheel() {
             const canvas = document.getElementById('wheel-canvas');
             const ctx = canvas.getContext('2d');
@@ -318,36 +367,6 @@
             s.cost = s.details.reduce((a, b) => a + b.price, 0n);
             await sync(); render();
             document.getElementById('item-input').value = ""; document.getElementById('cost-input').value = "";
-        }
-
-        async function importData() {
-            const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
-            const lines = raw.split('\n');
-            let anchor = null, count = 0;
-            const vn = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
-
-            lines.forEach(line => {
-                const weekMatch = line.match(/\((\d{1,2})\/(\d{1,2})/);
-                if(weekMatch) {
-                    let base = new Date(2026, parseInt(weekMatch[2])-1, parseInt(weekMatch[1]));
-                    base.setDate(base.getDate() - 1);
-                    anchor = base.toISOString().split('T')[0]; return;
-                }
-                const dayMatch = line.match(/^(T2|T3|T4|T5|T6|T7|CN)\s*:\s*(.+)$/i);
-                if(dayMatch && anchor) {
-                    const dObj = new Date(anchor + "T00:00:00"); dObj.setDate(dObj.getDate() + vn[dayMatch[1].toUpperCase()]);
-                    const iso = dObj.toISOString().split('T')[0];
-                    const parts = dayMatch[2].split('+');
-                    let s = spendings.find(x => x.date === iso && !x.isSutra);
-                    if(!s) { s = {date:iso, cost:0n, details:[]}; spendings.push(s); }
-                    parts.forEach(p => {
-                        const pm = p.match(/(\d+)[kK]?/), nm = p.match(/\((.+?)\)/);
-                        if(pm) { s.details.push({name: (nm?nm[1]:"EXPENSE").toUpperCase().trim(), price: toBigInt(pm[0])}); count++; }
-                    });
-                    s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-                }
-            });
-            if(count>0) { await sync(); render(); alert(`Synced ${count} items!`); document.getElementById('bulk-input').value = ""; }
         }
 
         function updateChart(range) {
