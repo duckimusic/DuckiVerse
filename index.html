@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>SpendLog 13.1 - Cloud Zen Edition</title>
+    <title>SpendLog 13.5 - Sound Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style id="theme-style">
         :root { 
@@ -80,8 +80,9 @@
 
         .total-footer { position: fixed; bottom: 0; left: 0; right: 0; background: var(--accent); color: white; padding: 20px; text-align: center; font-weight: bold; font-size: 18px; z-index: 999; text-shadow: 0 1px 3px rgba(0,0,0,0.3); }
         
-        #zen-list::-webkit-scrollbar { width: 4px; }
-        #zen-list::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 10px; }
+        .range-outcome {
+            background: var(--glass-card); border: 1px dashed var(--accent); padding: 15px; border-radius: 12px; margin-bottom: 20px; font-family: monospace; font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -112,15 +113,23 @@
     </div>
 
     <div id="view-analytics" class="view">
+        <div class="input-group" style="padding: 15px; margin-bottom: 20px;">
+            <div style="font-size: 10px; color: var(--accent); font-weight: bold; margin-bottom: 8px; letter-spacing: 1px;">CALCULATE RANGE</div>
+            <div style="display: flex; gap: 8px;">
+                <input type="date" id="range-start">
+                <input type="date" id="range-end">
+            </div>
+            <button class="btn" style="padding: 10px; margin-top: 8px; font-size: 12px;" onclick="calculateRangeOutcome()">CALCULATE RANGE</button>
+        </div>
+        <div id="range-result-area"></div>
+
         <div style="display: flex; gap: 6px; margin-bottom: 15px;">
             <button class="btn" style="flex: 1; padding: 10px; font-size: 11px;" onclick="updateChart('14d')">RECENT</button>
-            <select id="month-picker" onchange="updateChart('month')" style="flex: 1; margin: 0;">
-                </select>
+            <select id="month-picker" onchange="updateChart('month')" style="flex: 1; margin: 0;"></select>
         </div>
         <div style="background: var(--glass-card); border-radius: 12px; padding: 15px; height: 260px; border: var(--border); backdrop-filter: blur(var(--blur));">
             <canvas id="spendingChart"></canvas>
         </div>
-        <div id="stats-summary" style="margin-top:15px; background: var(--glass-card); padding: 15px; border-radius: 12px; border: var(--border); backdrop-filter: blur(var(--blur));"></div>
     </div>
 
     <div id="view-zen" class="view">
@@ -137,7 +146,6 @@
 
         <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border: 1px dashed var(--gold); margin-bottom: 30px;">
             <div style="font-size: 10px; color: var(--gold); margin-bottom: 10px; font-weight: bold; text-align: center; letter-spacing: 1px;">NHẬP PHÁP CÚ CLOUD</div>
-            
             <select id="sutra-chapter-select">
                 <option>Phẩm Song Yếu</option><option>Phẩm Không Phóng Giật</option><option>Phẩm Tâm</option>
                 <option>Phẩm Hoa</option><option>Phẩm Kẻ Ngu</option><option>Phẩm Hiền Trí</option>
@@ -149,11 +157,8 @@
                 <option>Phẩm Địa Ngục</option><option>Phẩm Voi</option><option>Phẩm Tham Ái</option>
                 <option>Phẩm Tỳ Kheo</option><option>Phẩm Bà La Môn</option>
             </select>
-
             <textarea id="sutra-content-input" rows="4" placeholder="Dán nội dung câu kệ..."></textarea>
-            
             <input type="text" id="sutra-id-input" value="Kệ số " placeholder="Ví dụ: Kệ số 1">
-
             <button class="btn" style="background: var(--gold); color: #000; margin-top: 10px;" onclick="saveSutra()">LƯU VÀO CLOUD</button>
             <button class="btn" style="background: transparent; color: var(--danger); border: 1px solid var(--danger); margin-top: 10px; font-size: 10px; padding: 5px;" onclick="clearZenData()">XOÁ HẾT PHÁP CÚ</button>
         </div>
@@ -166,9 +171,7 @@
         <button class="btn" style="background: transparent; border: 1px solid var(--gold); color: var(--gold); margin-top: 20px;" onclick="spin()">XOAY BÁT CHÁNH ĐẠO</button>
 
         <div id="zen-library-container" style="margin-top: 40px; background: var(--glass-card); padding: 15px; border-radius: 12px; border: var(--border); backdrop-filter: blur(var(--blur));">
-            <div style="font-size: 11px; color: var(--gold); font-weight: bold; margin-bottom: 10px; text-align: center; letter-spacing: 1px;">THƯ VIỆN PHÁP CÚ CLOUD</div>
-            <div id="zen-list" style="max-height: 400px; overflow-y: auto; font-size: 13px;">
-                </div>
+            <div id="zen-list" style="max-height: 400px; overflow-y: auto; font-size: 13px;"></div>
         </div>
     </div>
 
@@ -202,18 +205,44 @@
         const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
         let spendings = [], myChart = null, wheelAngle = 0;
 
+        // --- SOUND ENGINE (CHỈ THÊM ĐOẠN NÀY) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSfx(type) {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+
+            if(type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(); osc.stop(now + 0.1);
+            } else if(type === 'success') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.2);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(); osc.stop(now + 0.2);
+            } else if(type === 'delete') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.3);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                osc.start(); osc.stop(now + 0.3);
+            } else if(type === 'wheel') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(150, now);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(); osc.stop(now + 0.05);
+            }
+        }
+
         window.onload = () => {
             setTimeout(() => document.getElementById('splash-screen').classList.add('hide-splash'), 2200);
-            document.getElementById('date-input').value = new Date().toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date-input').value = today;
+            document.getElementById('range-start').value = today;
+            document.getElementById('range-end').value = today;
             
-            // AUTO-POPULATE 12 MONTHS
             const monthPicker = document.getElementById('month-picker');
             const currentMonth = new Date().getMonth();
-            const monthNames = ["January", "February", "March", "April", "May", "June", 
-                                "July", "August", "September", "October", "November", "December"];
-            monthPicker.innerHTML = monthNames.map((name, i) => 
-                `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${name}</option>`
-            ).join('');
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            monthPicker.innerHTML = monthNames.map((name, i) => `<option value="${i}" ${i === currentMonth ? 'selected' : ''}>${name}</option>`).join('');
 
             drawWheel(); load();
         };
@@ -237,6 +266,20 @@
             } catch(e) { console.error("Load failed"); }
         }
 
+        function calculateRangeOutcome() {
+            playSfx('success');
+            const start = document.getElementById('range-start').value;
+            const end = document.getElementById('range-end').value;
+            if(!start || !end) return;
+            const filtered = spendings.filter(s => !s.isSutra && s.date >= start && s.date <= end).sort((a,b) => a.date.localeCompare(b.date));
+            let total = 0n;
+            let listHtml = filtered.map(s => {
+                total += s.cost;
+                return `<div>• [${s.date.split('-').reverse().slice(0,2).join('/')}] ${s.details.map(d => d.name).join(', ')}: <b>${formatK(s.cost)}</b></div>`;
+            }).join('');
+            document.getElementById('range-result-area').innerHTML = `<div class="range-outcome"><div style="color:var(--accent); font-weight:bold; margin-bottom:8px;">(${start.split('-').reverse().slice(0,2).join('/')} - ${end.split('-').reverse().slice(0,2).join('/')})</div><div style="max-height:120px; overflow-y:auto; margin-bottom:8px; line-height:1.6;">${listHtml || "Trống."}</div><div style="border-top:1px dashed var(--accent); padding-top:8px; font-weight:bold; color:var(--gold);">TOTAL: ${formatK(total)}</div></div>`;
+        }
+
         function render() {
             let grandTotal = 0n;
             const bills = spendings.filter(x => !x.isSutra).sort((a,b) => b.date.localeCompare(a.date));
@@ -245,72 +288,56 @@
                 return `<div class="receipt"><div class="r-head">${s.date}</div>${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
-            
-            const sutras = spendings.filter(x => x.isSutra).sort((a, b) => {
-                const valA = parseInt(a.r.match(/\d+/) || 0);
-                const valB = parseInt(b.r.match(/\d+/) || 0);
-                return valA - valB;
-            });
-            const zenList = document.getElementById('zen-list');
-            if(sutras.length === 0) {
-                zenList.innerHTML = `<div style="text-align:center; color:#8b949e; padding:20px;">Trống không. Hãy bắt đầu chép kinh.</div>`;
-            } else {
-                zenList.innerHTML = sutras.map(s => `
-                    <div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;">
-                        <div style="flex:1;">
-                            <b style="color:var(--gold);">Kệ ${s.r}:</b> <span style="font-size:10px; opacity:0.6;">[${s.c}]</span>
-                            <div style="color:var(--text); font-style:italic; margin-top:4px; line-height:1.4;">${s.v.substring(0,60)}${s.v.length>60?'...':''}</div>
-                        </div>
-                        <div class="del-btn" onclick="deleteSutra('${s.r}')" style="padding:10px;">×</div>
-                    </div>
-                `).join('');
-            }
+            const sutras = spendings.filter(x => x.isSutra).sort((a, b) => parseInt(a.r.match(/\d+/) || 0) - parseInt(b.r.match(/\d+/) || 0));
+            document.getElementById('zen-list').innerHTML = sutras.length === 0 ? `<div style="text-align:center; color:#8b949e; padding:20px;">Trống.</div>` : sutras.map(s => `<div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"><div style="flex:1;"><b style="color:var(--gold);">Kệ ${s.r}:</b> <span style="font-size:10px; opacity:0.6;">[${s.c}]</span><div style="color:var(--text); font-style:italic; margin-top:4px;">${s.v.substring(0,60)}...</div></div><div class="del-btn" onclick="deleteSutra('${s.r}')">×</div></div>`).join('');
             updateChart('14d');
         }
 
         async function saveSutra() {
+            playSfx('success');
             const chapter = document.getElementById('sutra-chapter-select').value;
             const content = document.getElementById('sutra-content-input').value.trim();
             const rawId = document.getElementById('sutra-id-input').value;
             const idMatch = rawId.match(/\d+/);
-            if(!content || !idMatch) return alert("Vui lòng nhập đủ nội dung và số kệ!");
-            const idStr = rawId.replace("Kệ số ", "").trim();
+            if(!content || !idMatch) return;
+            const idStr = idMatch[0];
             spendings = spendings.filter(s => !(s.isSutra && String(s.r) === idStr));
             spendings.push({ isSutra: true, c: chapter, v: content, r: idStr });
-            await sync();
-            document.getElementById('sutra-content-input').value = "";
-            render(); refreshQuote(); alert(`Đã lưu Kệ số ${idStr}`);
+            await sync(); document.getElementById('sutra-content-input').value = ""; render(); refreshQuote();
         }
 
-        async function deleteSutra(id) {
-            if(confirm(`Xoá Kệ số ${id}?`)) {
-                spendings = spendings.filter(s => !(s.isSutra && s.r === id));
-                await sync(); render(); refreshQuote();
-            }
-        }
-
-        async function clearZenData() {
-            if(confirm("Xoá TOÀN BỘ Pháp Cú trên Cloud?")) {
-                spendings = spendings.filter(s => !s.isSutra);
-                await sync(); render(); refreshQuote();
-            }
-        }
-
+        async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('delete'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
+        async function clearZenData() { if(confirm("Xoá sạch Pháp Cú?")) { playSfx('delete'); spendings = spendings.filter(s => !s.isSutra); await sync(); render(); refreshQuote(); } }
         function refreshQuote() {
             const sutras = spendings.filter(s => s.isSutra);
-            const pool = sutras.length > 0 ? sutras : [{c:"Hệ thống", v:"Chưa có dữ liệu Cloud.", r:0}];
-            const q = pool[Math.floor(Math.random() * pool.length)];
+            const q = sutras.length > 0 ? sutras[Math.floor(Math.random()*sutras.length)] : {c:"Hệ thống", v:"Chưa có dữ liệu.", r:0};
             document.getElementById('quote-chapter').innerText = q.c.toUpperCase();
             document.getElementById('quote-text').innerText = `"${q.v}"`;
             document.getElementById('quote-ref').innerText = `— Kệ số ${q.r}`;
         }
+        function copySutra() { playSfx('click'); const t = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})`; navigator.clipboard.writeText(t); alert("Coppied!"); }
 
-        function copySutra() {
-            const text = `${document.getElementById('quote-text').innerText}\n(${document.getElementById('quote-chapter').innerText} - ${document.getElementById('quote-ref').innerText})\nNguồn: kinhphapcu.vn`;
-            navigator.clipboard.writeText(text); alert("Đã sao chép!");
+        function updateChart(mode) {
+            const ctx = document.getElementById('spendingChart').getContext('2d');
+            let dataArr = spendings.filter(x => !x.isSutra).sort((a,b) => a.date.localeCompare(b.date));
+            if(mode === 'month') { dataArr = dataArr.filter(s => new Date(s.date).getMonth() == document.getElementById('month-picker').value); } else { dataArr = dataArr.slice(-14); }
+            if(myChart) myChart.destroy();
+            myChart = new Chart(ctx, { type: 'line', data: { labels: dataArr.map(s => s.date.slice(5)), datasets: [{ data: dataArr.map(s => Number(s.cost)/1000), borderColor: '#58a6ff', tension: 0.3 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } });
+        }
+
+        async function saveEntry() {
+            playSfx('success');
+            const d = document.getElementById('date-input').value; 
+            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
+            if(!d || names.length !== costs.length) return;
+            let s = spendings.find(x => x.date === d && !x.isSutra); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
+            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
+            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+            await sync(); render();
         }
 
         async function importData() {
+            playSfx('success');
             const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
             const lines = raw.split('\n'); let anchor = null, count = 0;
             const vn = {"T2":0,"T3":1,"T4":2,"T5":3,"T6":4,"T7":5,"CN":6};
@@ -331,17 +358,7 @@
                     s.cost = s.details.reduce((a,b) => a+b.price, 0n);
                 }
             });
-            if(count>0){ await sync(); render(); alert(`Synced ${count} items!`); document.getElementById('bulk-input').value=""; }
-        }
-
-        function updateChart(range) {
-            const ctx = document.getElementById('spendingChart').getContext('2d');
-            const dataArr = spendings.filter(x => !x.isSutra).sort((a,b) => a.date.localeCompare(b.date)).slice(-14);
-            if(myChart) myChart.destroy();
-            myChart = new Chart(ctx, {
-                type: 'line', data: { labels: dataArr.map(s => s.date.slice(5)), datasets: [{ data: dataArr.map(s => Number(s.cost)/1000), borderColor: '#58a6ff', tension: 0.3 }] },
-                options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
-            });
+            if(count>0){ await sync(); render(); document.getElementById('bulk-input').value=""; }
         }
 
         function drawWheel() {
@@ -352,37 +369,25 @@
                 ctx.fillText(PATHS[i], 250, 10); ctx.restore();
             }
         }
-
-        function spin() {
-            wheelAngle += Math.floor(Math.random()*360) + 3600;
-            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`;
-            setTimeout(() => { const idx = Math.floor(((270-(wheelAngle%360)+360)%360)/45); document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); }, 5000);
+        function spin() { 
+            let count = 0;
+            const timer = setInterval(() => { playSfx('wheel'); if(++count > 20) clearInterval(timer); }, 150);
+            wheelAngle += Math.floor(Math.random()*360) + 3600; 
+            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`; 
+            setTimeout(() => { 
+                playSfx('success');
+                const idx = Math.floor(((270-(wheelAngle%360)+360)%360)/45); 
+                document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); 
+            }, 5000); 
         }
-
-        async function saveEntry() {
-            const d = document.getElementById('date-input').value; 
-            const names = document.getElementById('item-input').value.split('+'), costs = document.getElementById('cost-input').value.split('+');
-            if(!d || names.length !== costs.length) return;
-            let s = spendings.find(x => x.date === d && !x.isSutra); if(!s) { s = {date:d, cost:0n, details:[]}; spendings.push(s); }
-            names.forEach((n, i) => s.details.push({name:n.toUpperCase().trim(), price:toBigInt(costs[i])}));
-            s.cost = s.details.reduce((a,b) => a+b.price, 0n);
-            await sync(); render();
-        }
-
-        function applyAtmosphere(t) {
-            const r = document.documentElement.style;
-            if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); }
-            else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); }
-            updateChart();
-        }
-
-        function showView(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
-        function toggleCalc() { document.getElementById('calc-panel').classList.toggle('open'); }
-        function calcInput(v) { document.getElementById('calc-display').innerText += v; }
-        function calcClear() { document.getElementById('calc-display').innerText = ""; }
-        function calcSolve() { try { document.getElementById('calc-display').innerText = eval(document.getElementById('calc-display').innerText); } catch(e) {} }
-        async function clearAllData(){ if(confirm("Xoá hết tiền?")){ spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
-        async function deleteLine(d, i) { const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
+        function showView(v){ playSfx('click'); document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
+        function toggleCalc() { playSfx('click'); document.getElementById('calc-panel').classList.toggle('open'); }
+        function calcInput(v) { playSfx('click'); document.getElementById('calc-display').innerText += v; }
+        function calcClear() { playSfx('delete'); document.getElementById('calc-display').innerText = ""; }
+        function calcSolve() { playSfx('success'); try { document.getElementById('calc-display').innerText = eval(document.getElementById('calc-display').innerText); } catch(e) {} }
+        async function clearAllData(){ if(confirm("Xoá sạch?")){ playSfx('delete'); spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
+        async function deleteLine(d, i) { playSfx('delete'); const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
+        function applyAtmosphere(t) { playSfx('success'); const r = document.documentElement.style; if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); } else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); } updateChart(); }
     </script>
 </body>
 </html>
