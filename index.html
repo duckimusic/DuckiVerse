@@ -59,6 +59,15 @@
         .view { display: none; padding: 20px; max-width: 500px; margin: 0 auto; filter: var(--view-filter, none); }
         .view.active { display: block; }
 
+        /* SEARCH UI */
+        .search-container {
+            margin-bottom: 15px; display: flex; gap: 8px;
+        }
+        .search-input {
+            flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+            color: var(--gold); padding: 8px 12px; border-radius: 6px; font-size: 12px;
+        }
+
         .receipt { 
             background: var(--receipt-bg); color: var(--receipt-text); padding: 18px; border-radius: 2px; margin-bottom: 15px; 
             font-family: monospace; border: var(--border); transition: 0.4s; transform: var(--receipt-tilt, none);
@@ -128,6 +137,12 @@
             <input type="text" id="cost-input" placeholder="Price (50k + 25k)">
             <button class="btn" onclick="saveEntry()">SAVE RECEIPT</button>
         </div>
+
+        <div class="search-container">
+            <input type="text" id="log-filter" class="search-input" placeholder="Lọc chi tiêu (tên, ngày, giá)..." onkeyup="filterDaily()">
+            <button onclick="clearFilter()" style="background:none; border:1px solid #444; color:#888; border-radius:4px; padding:0 10px; cursor:pointer;">X</button>
+        </div>
+
         <div id="daily-list"></div>
     </div>
 
@@ -250,9 +265,7 @@
         const PATHS = ["Chánh Kiến", "Chánh Tư Duy", "Chánh Ngữ", "Chánh Nghiệp", "Chánh Mạng", "Chánh Tinh Tấn", "Chánh Niệm", "Chánh Định"];
         let spendings = [], myChart = null, wheelAngle = 0;
 
-        // ==========================================
-        // 1. DUCKI SOUND ENGINE
-        // ==========================================
+        // ... (DucKi Sound Engine & Splash Logic giữ nguyên) ...
         const USER_SOUNDS = {
             open: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/openapp.wav",
             click: "https://github.com/duckimusic/DuckiVerse/raw/refs/heads/main/picktab.wav",
@@ -274,9 +287,6 @@
         }
         preloadSounds();
 
-        // ==========================================
-        // 2. SPLASH LOGIC
-        // ==========================================
         let isLoaded = false, appStarted = false;
         window.onload = () => {
             setTimeout(() => { isLoaded = true; document.getElementById('splash-content').style.display = 'none'; document.getElementById('welcome-msg').style.display = 'block'; }, 2600);
@@ -294,9 +304,7 @@
         window.addEventListener('keydown', (e) => { if(e.code === 'Space') startApp(); });
         window.addEventListener('click', startApp);
 
-        // ==========================================
-        // 3. CORE LOGIC
-        // ==========================================
+        // CORE LOGIC
         function formatK(n) { return Math.floor(Number(n)/1000).toLocaleString() + "k"; }
         function toBigInt(val) { return BigInt(String(val).toLowerCase().replace(/k/g, '000').replace(/[^\d]/g, '') || 0); }
 
@@ -315,14 +323,21 @@
             } catch(e) {}
         }
 
-        function calculateRangeOutcome() {
-            playSfx('success');
-            const start = document.getElementById('range-start').value, end = document.getElementById('range-end').value;
-            if(!start || !end) return;
-            const filtered = spendings.filter(s => !s.isSutra && s.date >= start && s.date <= end).sort((a,b) => a.date.localeCompare(b.date));
-            let total = 0n;
-            let listHtml = filtered.map(s => { total += s.cost; return `<div>• [${s.date.split('-').reverse().slice(0,2).join('/')}] ${s.details.map(d => d.name).join(', ')}: <b>${formatK(s.cost)}</b></div>`; }).join('');
-            document.getElementById('range-result-area').innerHTML = `<div class="range-outcome"><div style="color:var(--accent); font-weight:bold; margin-bottom:8px;">(${start.split('-').reverse().slice(0,2).join('/')} - ${end.split('-').reverse().slice(0,2).join('/')})</div><div style="max-height:120px; overflow-y:auto; margin-bottom:8px; line-height:1.6;">${listHtml || "Trống."}</div><div style="border-top:1px dashed var(--accent); padding-top:8px; font-weight:bold; color:var(--gold);">TOTAL: ${formatK(total)}</div></div>`;
+        // ==========================================
+        // NEW: FILTER FUNCTIONALITY
+        // ==========================================
+        function filterDaily() {
+            const val = document.getElementById('log-filter').value.toLowerCase();
+            const receipts = document.querySelectorAll('.receipt');
+            receipts.forEach(r => {
+                const text = r.innerText.toLowerCase();
+                r.style.display = text.includes(val) ? "block" : "none";
+            });
+        }
+
+        function clearFilter() {
+            document.getElementById('log-filter').value = "";
+            filterDaily();
         }
 
         function render() {
@@ -333,11 +348,15 @@
                 return `<div class="receipt"><div class="r-head">${s.date}</div>${s.details.map((item, idx) => `<div class="r-row"><b>${item.name}</b><span>${formatK(item.price)} <span class="del-btn" onclick="deleteLine('${s.date}', ${idx})">×</span></span></div>`).join('')}<div class="r-total"><span>SUM</span><span>${formatK(s.cost)}</span></div></div>`;
             }).join('');
             document.getElementById('grand-total-val').innerText = formatK(grandTotal);
+            
+            // ... (Phần render Zen List & Chart giữ nguyên) ...
             const sutras = spendings.filter(x => x.isSutra).sort((a, b) => parseInt(String(a.r).match(/\d+/) || 0) - parseInt(String(b.r).match(/\d+/) || 0));
             document.getElementById('zen-list').innerHTML = sutras.length === 0 ? `<div style="text-align:center; color:#8b949e; padding:20px;">Trống.</div>` : sutras.map(s => `<div style="padding:12px 0; border-bottom:1px solid rgba(255,255,255,0.05); display:flex; justify-content:space-between; align-items:center;"><div style="flex:1;"><b style="color:var(--gold);">Kệ ${s.r}:</b> <span style="font-size:10px; opacity:0.6;">[${s.c}]</span><div style="color:var(--text); font-style:italic; margin-top:4px;">${s.v.substring(0,60)}...</div></div><div class="del-btn" onclick="deleteSutra('${s.r}')">×</div></div>`).join('');
             updateChart('14d');
+            filterDaily(); // Đảm bảo filter vẫn áp dụng sau khi render lại
         }
 
+        // ... (Mấy hàm Zen, Chart, SaveEntry, Import, Spin... giữ nguyên nội dung của ông) ...
         async function saveSutra() {
             playSfx('success');
             const chapter = document.getElementById('sutra-chapter-select').value, content = document.getElementById('sutra-content-input').value.trim(), rawId = document.getElementById('sutra-id-input').value.trim();
@@ -346,7 +365,6 @@
             spendings.push({ isSutra: true, c: chapter, v: content, r: cleanId });
             await sync(); document.getElementById('sutra-content-input').value = ""; render(); refreshQuote();
         }
-
         async function deleteSutra(id) { if(confirm(`Xoá Kệ ${id}?`)) { playSfx('click'); spendings = spendings.filter(s => !(s.isSutra && s.r === id)); await sync(); render(); refreshQuote(); } }
         async function clearZenData() { if(confirm("Xoá sạch Pháp Cú?")) { playSfx('click'); spendings = spendings.filter(s => !s.isSutra); await sync(); render(); refreshQuote(); } }
         function refreshQuote() {
@@ -375,6 +393,93 @@
             s.cost = s.details.reduce((a,b) => a+b.price, 0n); await sync(); render();
         }
 
+        async function deleteLine(date, idx) {
+            playSfx('click');
+            let s = spendings.find(x => x.date === date && !x.isSutra);
+            if(s) {
+                s.details.splice(idx, 1);
+                if(s.details.length === 0) spendings = spendings.filter(x => x !== s);
+                else s.cost = s.details.reduce((a,b) => a+b.price, 0n);
+                await sync(); render();
+            }
+        }
+
+        async function clearAllData() { if(confirm("Wipe all?")) { spendings = []; await sync(); render(); } }
+
+        function showView(v){ playSfx('click'); document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); document.querySelectorAll('.nav-tab').forEach(e=>e.classList.remove('active')); event.target.classList.add('active'); }
+
+        // CALCULATOR LOGIC
+        let calcReset = false;
+        function toggleCalc() { playSfx('click'); document.getElementById('calc-panel').classList.toggle('open'); }
+        function calcInput(v) {
+            playSfx('click');
+            const display = document.getElementById('calc-display');
+            if (calcReset) { display.innerText = ""; calcReset = false; }
+            if (display.innerText === "0" || display.innerText === "Error") display.innerText = "";
+            display.innerText += v;
+        }
+        function calcCmd(op) {
+            playSfx('click');
+            const display = document.getElementById('calc-display');
+            if (display.innerText === "Error") return;
+            calcReset = false;
+            display.innerText += op;
+        }
+        function calcClear() {
+            playSfx('click');
+            document.getElementById('calc-display').innerText = "0";
+            calcReset = false;
+        }
+        function calcSolve() {
+            const display = document.getElementById('calc-display');
+            try {
+                let expression = display.innerText.replace(/×/g, '*').replace(/÷/g, '/');
+                const openBrackets = (expression.match(/\(/g) || []).length;
+                const closeBrackets = (expression.match(/\)/g) || []).length;
+                expression += ")".repeat(Math.max(0, openBrackets - closeBrackets));
+                let result = eval(expression);
+                display.innerText = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
+                playSfx('success');
+                calcReset = true;
+            } catch (e) { display.innerText = "Error"; }
+        }
+        function calcPercent() {
+            playSfx('click');
+            const display = document.getElementById('calc-display');
+            try {
+                let val = eval(display.innerText.replace(/×/g, '*').replace(/÷/g, '/'));
+                display.innerText = val / 100;
+                calcReset = true;
+            } catch (e) { display.innerText = "Error"; }
+        }
+
+        // Bát Chánh Đạo
+        function drawWheel() {
+            const canvas = document.getElementById('wheel-canvas'); const ctx = canvas.getContext('2d'); const arc = Math.PI*2/8;
+            for(let i=0; i<8; i++) {
+                ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117"; ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
+                ctx.save(); ctx.translate(400, 400); ctx.rotate(i*arc+arc/2); ctx.textAlign="center"; ctx.fillStyle=i%2?"#fff":"#f2cc60"; ctx.font="bold 42px sans-serif";
+                ctx.fillText(PATHS[i], 250, 10); ctx.restore();
+            }
+        }
+        function spin() { 
+            let count = 0; const timer = setInterval(() => { playSfx('wheel'); if(++count > 20) clearInterval(timer); }, 150);
+            wheelAngle += Math.floor(Math.random()*360) + 3600; 
+            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`; 
+            setTimeout(() => { playSfx('success'); const idx = Math.floor(((270-(wheelAngle%360)+360)%360)/45); document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); }, 5000); 
+        }
+
+        function calculateRangeOutcome() {
+            playSfx('success');
+            const start = document.getElementById('range-start').value, end = document.getElementById('range-end').value;
+            if(!start || !end) return;
+            const filtered = spendings.filter(s => !s.isSutra && s.date >= start && s.date <= end).sort((a,b) => a.date.localeCompare(b.date));
+            let total = 0n;
+            let listHtml = filtered.map(s => { total += s.cost; return `<div>• [${s.date.split('-').reverse().slice(0,2).join('/')}] ${s.details.map(d => d.name).join(', ')}: <b>${formatK(s.cost)}</b></div>`; }).join('');
+            document.getElementById('range-result-area').innerHTML = `<div class="range-outcome"><div style="color:var(--accent); font-weight:bold; margin-bottom:8px;">(${start.split('-').reverse().slice(0,2).join('/')} - ${end.split('-').reverse().slice(0,2).join('/')})</div><div style="max-height:120px; overflow-y:auto; margin-bottom:8px; line-height:1.6;">${listHtml || "Trống."}</div><div style="border-top:1px dashed var(--accent); padding-top:8px; font-weight:bold; color:var(--gold);">TOTAL: ${formatK(total)}</div></div>`;
+        }
+
+        // Import Data logic... (Giữ nguyên)
         async function importData() {
             playSfx('success');
             const raw = document.getElementById('bulk-input').value; if(!raw.trim()) return;
@@ -395,78 +500,16 @@
             if(count>0){ await sync(); render(); document.getElementById('bulk-input').value=""; }
         }
 
-        function drawWheel() {
-            const canvas = document.getElementById('wheel-canvas'); const ctx = canvas.getContext('2d'); const arc = Math.PI*2/8;
-            for(let i=0; i<8; i++) {
-                ctx.beginPath(); ctx.fillStyle = i%2 ? "#161b22" : "#0d1117"; ctx.moveTo(400, 400); ctx.arc(400, 400, 380, i*arc, (i+1)*arc); ctx.fill();
-                ctx.save(); ctx.translate(400, 400); ctx.rotate(i*arc+arc/2); ctx.textAlign="center"; ctx.fillStyle=i%2?"#fff":"#f2cc60"; ctx.font="bold 42px sans-serif";
-                ctx.fillText(PATHS[i], 250, 10); ctx.restore();
+        function applyAtmosphere(theme) {
+            const root = document.documentElement.style;
+            if(theme === 'cyber') {
+                root.setProperty('--accent', '#ff0055'); root.setProperty('--gold', '#00ffcc'); root.setProperty('--bg', '#050505');
+            } else if(theme === 'horror') {
+                root.setProperty('--accent', '#ff0000'); root.setProperty('--bg', '#000'); root.setProperty('--text', '#888');
+            } else {
+                root.setProperty('--accent', '#58a6ff'); root.setProperty('--gold', '#f2cc60'); root.setProperty('--bg', '#0d1117');
             }
         }
-        function spin() { 
-            let count = 0; const timer = setInterval(() => { playSfx('wheel'); if(++count > 20) clearInterval(timer); }, 150);
-            wheelAngle += Math.floor(Math.random()*360) + 3600; 
-            document.getElementById('wheel-canvas').style.transform = `rotate(${wheelAngle}deg)`; 
-            setTimeout(() => { playSfx('success'); const idx = Math.floor(((270-(wheelAngle%360)+360)%360)/45); document.getElementById('zen-res').innerText = PATHS[idx].toUpperCase(); }, 5000); 
-        }
-
-        function showView(v){ playSfx('click'); document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById(`view-${v}`).classList.add('active'); }
-        
-        // ==========================================
-        // 4. NEW CALCULATOR LOGIC
-        // ==========================================
-        let calcReset = false;
-        function toggleCalc() { playSfx('click'); document.getElementById('calc-panel').classList.toggle('open'); }
-        
-        function calcInput(v) {
-            playSfx('click');
-            const display = document.getElementById('calc-display');
-            if (calcReset) { display.innerText = ""; calcReset = false; }
-            if (display.innerText === "0" || display.innerText === "Error") display.innerText = "";
-            display.innerText += v;
-        }
-
-        function calcCmd(op) {
-            playSfx('click');
-            const display = document.getElementById('calc-display');
-            if (display.innerText === "Error") return;
-            calcReset = false;
-            display.innerText += op;
-        }
-
-        function calcClear() {
-            playSfx('click');
-            document.getElementById('calc-display').innerText = "0";
-            calcReset = false;
-        }
-
-        function calcPercent() {
-            playSfx('click');
-            const display = document.getElementById('calc-display');
-            try {
-                let val = eval(display.innerText.replace(/×/g, '*').replace(/÷/g, '/'));
-                display.innerText = val / 100;
-                calcReset = true;
-            } catch (e) { display.innerText = "Error"; }
-        }
-
-        function calcSolve() {
-            const display = document.getElementById('calc-display');
-            try {
-                let expression = display.innerText.replace(/×/g, '*').replace(/÷/g, '/');
-                const openBrackets = (expression.match(/\(/g) || []).length;
-                const closeBrackets = (expression.match(/\)/g) || []).length;
-                for(let i=0; i < openBrackets - closeBrackets; i++) { expression += ")"; }
-                let result = eval(expression);
-                display.innerText = Number.isInteger(result) ? result : parseFloat(result.toFixed(4));
-                playSfx('success');
-                calcReset = true;
-            } catch (e) { display.innerText = "Error"; playSfx('click'); }
-        }
-
-        async function clearAllData(){ if(confirm("Xoá sạch?")){ playSfx('click'); spendings=spendings.filter(s=>s.isSutra); await sync(); render(); }}
-        async function deleteLine(d, i) { playSfx('click'); const s = spendings.find(x=>x.date===d); s.details.splice(i,1); s.cost=s.details.reduce((a,b)=>a+b.price,0n); await sync(); render(); }
-        function applyAtmosphere(t) { playSfx('success'); const r = document.documentElement.style; if(t==='retro'){ r.setProperty('--accent','#ff00ff'); r.setProperty('--text','#39ff14'); } else { r.setProperty('--accent','#58a6ff'); r.setProperty('--text','#e6edf3'); } updateChart(); }
     </script>
 </body>
 </html>
